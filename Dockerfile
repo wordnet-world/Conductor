@@ -1,5 +1,5 @@
 FROM scratch
 
-ADD Conductor /
+ADD Conductor_linux /
 
-CMD ["/Conductor"]
+CMD ["/Conductor_linux"]

@@ -23,6 +23,30 @@ var routes = Routes{
 		"/",
 		HeartBeat,
 	},
+	Route{
+		"Admin_Password_Check",
+		"GET",
+		"/adminPasswordCheck",
+		AdminPasswordCheck,
+	},
+	Route{
+		"Create_Game",
+		"POST",
+		"/createGame",
+		CreateGame,
+	},
+	Route{
+		"Join_Game",
+		"POST",
+		"/joinGame",
+		JoinGame,
+	},
+	Route{
+		"Delete_Game",
+		"DELETE",
+		"/deleteGame",
+		DeleteGame,
+	},
 	/*Route{
 		"Tutor_Store",
 		"POST",

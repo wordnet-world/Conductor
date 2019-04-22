@@ -11,6 +11,26 @@ func HeartBeat(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, "Hello World!")
 }
 
+func AdminPasswordCheck(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func JoinGame(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func CreateGame(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func DeleteGame(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func ListGames(w http.ResponseWriter, r *http.Request) {
+
+}
+
 // Store handles POST requests to /store
 // This converts the object to a checkoff model and
 // sends it to long term storage

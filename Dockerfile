@@ -1,6 +1,7 @@
 FROM golang:1.12
 COPY . /root/Conductor
 WORKDIR /root/Conductor
+ENV GOPATH=/root/Conductor
 RUN make build-linux
 
 FROM scratch

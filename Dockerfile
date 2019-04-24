@@ -1,11 +1,10 @@
 FROM golang:1.12
 
-COPY . /root/Conductor
-WORKDIR /root/Conductor
-ENV GOPATH=/root/Conductor
+COPY . /root/go/src/github.com/wordnet-world/Conductor
+WORKDIR /root/go/src/github.com/wordnet-world/Conductor
 RUN echo $GOPATH && \
     make build-linux
 
 FROM scratch
-COPY --from=0 Conductor_linux /
+COPY --from=0 /root/go/src/github.com/wordnet-world/Conductor/Conductor_linux /
 CMD ["/Conductor_linux"]

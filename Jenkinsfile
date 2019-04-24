@@ -15,7 +15,7 @@ pipeline {
         script {
           docker.image('bitnami/kubectl:1.14.1').inside('--entrypoint=\'\'') {
             sh 'cp manifests/wordnet-world-conductor-deployment.yaml manifests/wordnet-world-conductor-deployment.yaml.old'
-            sh "kubectl set image -f manifests/wordnet-world-conductor-deployment.yaml.old --local wordnet-world-conductor=cjblink1/wordnet-world-conductor:${GIT_COMMIT} -o yaml"
+            sh "kubectl set image -f manifests/wordnet-world-conductor-deployment.yaml.old --local wordnet-world-conductor=cjblink1/wordnet-world-conductor:${GIT_COMMIT} -o yaml > manifests/wordnet-world-conductor-deployment.yaml"
           }
         }
         sh 'git add manifests/wordnet-world-conductor-deployment.yaml'

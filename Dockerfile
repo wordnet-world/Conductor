@@ -1,5 +1,8 @@
+FROM golang:1.12
+COPY . /root/Conductor
+WORKDIR /root/Conductor
+RUN make build-linux
+
 FROM scratch
-
-ADD Conductor_linux /
-
+COPY --from=0 Conductor_linux /
 CMD ["/Conductor_linux"]

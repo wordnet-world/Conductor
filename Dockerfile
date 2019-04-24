@@ -1,4 +1,5 @@
 FROM golang:1.12
+
 COPY . /root/Conductor
 WORKDIR /root/Conductor
 ENV GOPATH=/root/Conductor

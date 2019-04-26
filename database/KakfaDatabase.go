@@ -12,6 +12,18 @@ type KafkaBroker struct {
 	topic     string
 }
 
+// NewKafkaBroker is a Constructor which attempts to connect to the kafka broker
+func NewKafkaBroker(topic string) (*KafkaBroker, error) {
+	p := new(KafkaBroker)
+	err := p.connect()
+	if err != nil {
+		return nil, err
+	}
+	p.topic = topic
+	p.connected = true
+	return p, nil
+}
+
 // Connect establishes a producer
 func (broker KafkaBroker) connect() error {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
@@ -31,7 +43,6 @@ func (broker KafkaBroker) Publish(message string) error {
 		return new(invalidStateError)
 	}
 
-	// Produce messages to topic (asynchronously)
 	broker.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &broker.topic, Partition: kafka.PartitionAny},
 		Value:          []byte(message),
@@ -64,18 +75,6 @@ func (broker KafkaBroker) Subscribe(action func(string)) error {
 			action(string(msg.Value))
 		}
 	}
-}
-
-// NewKafkaBroker is a Constructor which attempts to connect to the kafka broker
-func NewKafkaBroker(topic string) (*KafkaBroker, error) {
-	p := new(KafkaBroker)
-	err := p.connect()
-	if err != nil {
-		return nil, err
-	}
-	p.topic = topic
-	p.connected = true
-	return p, nil
 }
 
 type invalidStateError struct {

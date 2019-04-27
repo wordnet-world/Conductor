@@ -6,8 +6,13 @@ import (
 
 // Database is the interface for normal database
 type Database interface {
-	TestConnection() bool
-	CreateGame() error
+	CreateGame(game models.Game) string // the game id for the game just created
 	GetGames() []models.Game
-	GetTeams(game models.Game) []models.Team
+	GetTeams(gameID string) []models.Team
+	DeleteGame(gameID string)
+}
+
+// GetDatabase returns the default database type
+func GetDatabase() Database {
+	return RedisDatabase{}
 }

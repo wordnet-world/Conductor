@@ -7,4 +7,5 @@ RUN echo $GOPATH && \
 
 FROM scratch
 COPY --from=0 /go/src/github.com/wordnet-world/Conductor/Conductor_linux /
+COPY ./config/conductor-conf.json /config/conductor-conf.json
 CMD ["/Conductor_linux"]

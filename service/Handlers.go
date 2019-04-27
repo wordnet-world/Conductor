@@ -3,30 +3,42 @@ package service
 import (
 	"fmt"
 	"net/http"
+
+	"github.com/wordnet-world/Conductor/models"
+
 	//"github.com/google/go-cmp/cmp"
+	"github.com/wordnet-world/Conductor/database"
 )
 
-// End point to verify connection
+// HeartBeat end point to verify connection
 func HeartBeat(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello World!")
+	fmt.Fprintln(w, "I'm Alive!")
 }
 
+// AdminPasswordCheck determines if the client can access the admin pages
 func AdminPasswordCheck(w http.ResponseWriter, r *http.Request) {
-
+	// TODO: Remember to defer some recovery code here
 }
 
+// JoinGame this will be fun, will need to return a websocket
 func JoinGame(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// CreateGame will create a game with the specified configuration
 func CreateGame(w http.ResponseWriter, r *http.Request) {
-
+	game := models.Game{}
+	db := database.GetDatabase()
+	db.CreateGame(game)
+	fmt.Fprintln(w, "Did the thing")
 }
 
+// DeleteGame will delete the game with the matching id
 func DeleteGame(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// ListGames will return an array of games
 func ListGames(w http.ResponseWriter, r *http.Request) {
 
 }

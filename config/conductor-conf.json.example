@@ -1,8 +1,8 @@
 {
     "redis" :{
-        "port": "<PORT>",
+        "port": <PORT>,
         "address": "<ADDRESS>",
-        "database": "<NUMBER FOR REDIS DB>",
+        "database": <NUMBER FOR REDIS DB>,
         "password": "<PASSWORD>"
     },
     "wordnet-world" :{

@@ -12,3 +12,5 @@
 *.out
 
 Conductor_linux
+
+conductor-conf.json

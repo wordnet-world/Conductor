@@ -1,6 +1,5 @@
 package database
 
-type Cache interface {
-	Ping() bool
-	GetGames()
+// RedisDatabase struct, will implement Database
+type RedisDatabase struct {
 }

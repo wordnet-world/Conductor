@@ -63,13 +63,10 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 
 func verifyPassword(r *http.Request) {
 	adminPassword := r.Header["Adminpassword"] // TODO: Need to capitalize P and hopefully it'll still work, Postman sends this
-	log.Printf("headers:%s", r.Header)
-	log.Printf("adminPassword:%s", adminPassword)
-
 	if len(adminPassword) != 1 {
 		log.Panicln("Malformed header 'AdminPassword'")
 	} else if adminPassword[0] != models.Config.Wordnet.AdminPassword {
-		log.Panicf("Incorrect Admin Password: %s != %s", adminPassword[0], models.Config.Wordnet.AdminPassword)
+		log.Panicln("Incorrect Admin Password")
 	}
 }
 

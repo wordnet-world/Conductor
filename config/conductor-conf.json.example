@@ -5,8 +5,8 @@
         "database": <NUMBER FOR REDIS DB>,
         "password": "<PASSWORD>"
     },
-    "wordnet-world" :{
-        "admin-password": "<PASSWORD>"
+    "wordnetWorld" :{
+        "adminPassword": "<PASSWORD>"
     }
 }
 

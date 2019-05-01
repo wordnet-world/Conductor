@@ -10,6 +10,7 @@ type Database interface {
 	GetGames() []models.Game
 	GetTeams(gameID string) []models.Team
 	DeleteGame(gameID string)
+	SetupDB()
 }
 
 // GetDatabase returns the default database type

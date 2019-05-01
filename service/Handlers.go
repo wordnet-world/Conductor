@@ -1,13 +1,14 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
 
 	"github.com/wordnet-world/Conductor/models"
-
 	//"github.com/google/go-cmp/cmp"
-	"github.com/wordnet-world/Conductor/database"
 )
 
 // HeartBeat end point to verify connection
@@ -27,10 +28,27 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 
 // CreateGame will create a game with the specified configuration
 func CreateGame(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, false).ToJSON())
+		}
+	}()
+
+	// Check admin password
+	verifyPassword(r)
+
+	//db := database.GetDatabase()
+
 	game := models.Game{}
-	db := database.GetDatabase()
-	db.CreateGame(game)
-	fmt.Fprintln(w, "Did the thing")
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Panicln("Could not read the body of the message")
+	}
+	log.Printf("Received body: %s\n", string(body))
+	json.Unmarshal(body, &game)
+	fmt.Fprintf(w, "This is the json %v\n", game)
 }
 
 // DeleteGame will delete the game with the matching id
@@ -41,6 +59,18 @@ func DeleteGame(w http.ResponseWriter, r *http.Request) {
 // ListGames will return an array of games
 func ListGames(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func verifyPassword(r *http.Request) {
+	adminPassword := r.Header["Adminpassword"] // TODO: Need to capitalize P and hopefully it'll still work, Postman sends this
+	log.Printf("headers:%s", r.Header)
+	log.Printf("adminPassword:%s", adminPassword)
+
+	if len(adminPassword) != 1 {
+		log.Panicln("Malformed header 'AdminPassword'")
+	} else if adminPassword[0] != models.Config.Wordnet.AdminPassword {
+		log.Panicf("Incorrect Admin Password: %s != %s", adminPassword[0], models.Config.Wordnet.AdminPassword)
+	}
 }
 
 // Store handles POST requests to /store
@@ -55,7 +85,7 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StcmpatusOK)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Panicln(err)

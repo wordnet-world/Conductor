@@ -16,6 +16,17 @@ type RedisDatabase struct {
 func (redisDatabase RedisDatabase) CreateGame(game models.Game) string {
 	client := connectToRedis()
 	game.ID = generateGameUUID(client)
+	key := fmt.Sprintf("game:%s", game.ID)
+	err := client.HSet(key, "game_id", game.ID)
+	checkErr(err)
+	err = client.HSet(key, "name", game.Name)
+	checkErr(err)
+	err = client.HSet(key, "start_node", game.StartNode)
+	checkErr(err)
+	err = client.HSet(key, "time_limit", game.TimeLimit)
+	checkErr(err)
+	// TODO handle creating teamIds and creating teams
+
 	return game.ID
 }
 
@@ -46,17 +57,11 @@ func (redisDatabase RedisDatabase) SetupDB() {
 	client := connectToRedis()
 
 	err := client.FlushAll().Err()
-	if err != nil {
-		log.Panicln(err)
-	}
+	checkErr(err)
 	err = client.Set("game:id", 0, 0).Err()
-	if err != nil {
-		log.Panicln(err)
-	}
+	checkErr(err)
 	err = client.Set("team:id", 0, 0).Err()
-	if err != nil {
-		log.Panicln(err)
-	}
+	checkErr(err)
 }
 
 func connectToRedis() *redis.Client {
@@ -74,9 +79,7 @@ func connectToRedis() *redis.Client {
 // checks whether we can connect to the database
 func testConnection(client *redis.Client) {
 	_, err := client.Ping().Result()
-	if err != nil {
-		log.Panicln(err)
-	}
+	checkErr(err)
 }
 
 func generateGameUUID(client *redis.Client) string {
@@ -85,4 +88,10 @@ func generateGameUUID(client *redis.Client) string {
 
 func generateTeamUUID(client *redis.Client) string {
 	return ""
+}
+
+func checkErr(err interface{}) {
+	if err != nil {
+		log.Panicln(err)
+	}
 }

@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/wordnet-world/Conductor/database"
 	"github.com/wordnet-world/Conductor/models"
 	//"github.com/google/go-cmp/cmp"
 )
@@ -39,7 +40,7 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	// Check admin password
 	verifyPassword(r)
 
-	//db := database.GetDatabase()
+	db := database.GetDatabase()
 
 	game := models.Game{}
 	body, err := ioutil.ReadAll(r.Body)
@@ -48,7 +49,13 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	}
 	log.Printf("Received body: %s\n", string(body))
 	json.Unmarshal(body, &game)
-	fmt.Fprintf(w, "This is the json %v\n", game)
+	log.Printf("This is the json %v\n", game)
+
+	// TODO use graph database to get a random root node
+	// from the graph for the start node
+	game.StartNode = "startNode123"
+	gameID := db.CreateGame(game)
+	fmt.Fprintf(w, models.CreateHTTPResponse(nil, true))
 }
 
 // DeleteGame will delete the game with the matching id

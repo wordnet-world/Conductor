@@ -5,7 +5,6 @@ import (
 	"log"
 
 	"github.com/go-redis/redis"
-	"github.com/tkanos/gonfig"
 	"github.com/wordnet-world/Conductor/models"
 )
 
@@ -13,10 +12,11 @@ import (
 type RedisDatabase struct {
 }
 
-// CreateGame allows for game creation when providing a game model
+// CreateGame allows for game creation when providing a game model, returns the new gameID
 func (redisDatabase RedisDatabase) CreateGame(game models.Game) string {
-
-	return ""
+	client := connectToRedis()
+	game.ID = generateGameUUID(client)
+	return game.ID
 }
 
 // GetGames returns a slice of Game objects
@@ -60,16 +60,11 @@ func (redisDatabase RedisDatabase) SetupDB() {
 }
 
 func connectToRedis() *redis.Client {
-	config := models.Configuration{}
-	err := gonfig.GetConf("./config/conductor-conf.json", &config)
-	if err != nil {
-		log.Panicln(err)
-	}
-	connectionString := fmt.Sprintf("%s:%d", config.Redis.Address, config.Redis.Port)
+	connectionString := fmt.Sprintf("%s:%d", models.Config.Redis.Address, models.Config.Redis.Port)
 	client := redis.NewClient(&redis.Options{
 		Addr:     connectionString,
-		Password: config.Redis.Password,
-		DB:       config.Redis.Database,
+		Password: models.Config.Redis.Password,
+		DB:       models.Config.Redis.Database,
 	})
 
 	testConnection(client)
@@ -84,10 +79,10 @@ func testConnection(client *redis.Client) {
 	}
 }
 
-func generateGameUUID(client *redis.Client) int {
-	return 0
+func generateGameUUID(client *redis.Client) string {
+	return ""
 }
 
-func generateTeamUUID(client *redis.Client) int {
-	return 0
+func generateTeamUUID(client *redis.Client) string {
+	return ""
 }

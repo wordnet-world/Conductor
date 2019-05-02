@@ -36,12 +36,14 @@ UUID variables
 `team:id string`
 
 Games
+`game_id = <number>`
 `game:game_id field value`
 
 `game:game_id game_id string`
+`game:game_id name string`
 `game:game_id teams string` // I'll just use a json string
-`game:game_id duration string`
-`game:game_id start_node_id string`
+`game:game_id time_limit string`
+`game:game_id start_node string`
 `game:game_id status string` // waiting, in-progress, complete
 `game:game_id start_time string` // 0 if not in progress
 

@@ -18,9 +18,8 @@ func (redisDatabase RedisDatabase) CreateGame(game models.Game) string {
 	// if the delete fails notify the user of the id and that it should be deleted
 	// or that the database is in an uncertain state
 	client := connectToRedis()
-	game.ID = generateGameUUID(client)
+	game.ID = generateUUID(client, "game:id")
 	gameKey := fmt.Sprintf("game:%s", game.ID)
-	// TODO handle creating teamIds and creating teams
 	teamIDs := generateTeams(client, game.Teams)
 	gameFieldsMap := map[string]interface{}{
 		"game_id":    game.ID,
@@ -87,19 +86,17 @@ func testConnection(client *redis.Client) {
 	checkErr(err)
 }
 
-func generateGameUUID(client *redis.Client) string {
-	return ""
-}
-
-func generateTeamUUID(client *redis.Client) string {
-	return ""
+func generateUUID(client *redis.Client, key string) string {
+	result, err := client.Incr(key).Result()
+	checkErr(err)
+	return string(result)
 }
 
 func generateTeams(client *redis.Client, names []string) []string {
 	// TODO add a recover to delete the hash on err
 	teamIDs := make([]string, len(names))
 	for i, name := range names {
-		teamIDs[i] = generateTeamUUID(client)
+		teamIDs[i] = generateUUID(client, "team:id")
 		teamKey := fmt.Sprintf("team:%s", teamIDs[i])
 		teamFieldsMap := map[string]interface{}{"team_id": teamIDs[i], "name": name, "score": 0}
 		err := client.HMSet(teamKey, teamFieldsMap)

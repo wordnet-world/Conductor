@@ -1,6 +1,7 @@
 package database
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -92,17 +93,18 @@ func generateUUID(client *redis.Client, key string) string {
 	return string(result)
 }
 
-func generateTeams(client *redis.Client, names []string) []string {
+func generateTeams(client *redis.Client, names []string) string {
 	// TODO add a recover to delete the hash on err
 	teamIDs := make([]string, len(names))
 	for i, name := range names {
 		teamIDs[i] = generateUUID(client, "team:id")
 		teamKey := fmt.Sprintf("team:%s", teamIDs[i])
 		teamFieldsMap := map[string]interface{}{"team_id": teamIDs[i], "name": name, "score": 0}
-		err := client.HMSet(teamKey, teamFieldsMap)
+		err := client.HMSet(teamKey, teamFieldsMap).Err()
 		checkErr(err)
 	}
-	return teamIDs
+	result, _ := json.Marshal(teamIDs)
+	return string(result)
 }
 
 func checkErr(err interface{}) {

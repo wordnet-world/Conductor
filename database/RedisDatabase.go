@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/go-redis/redis"
 	"github.com/wordnet-world/Conductor/models"
@@ -29,6 +30,7 @@ func (redisDatabase RedisDatabase) CreateGame(game models.Game) string {
 		"time_limit": game.TimeLimit,
 		"teams":      teamIDs,
 	}
+	log.Printf("CreateGame fields: %v\n", gameFieldsMap)
 	err := client.HMSet(gameKey, gameFieldsMap).Err()
 	checkErr(err)
 
@@ -90,7 +92,8 @@ func testConnection(client *redis.Client) {
 func generateUUID(client *redis.Client, key string) string {
 	result, err := client.Incr(key).Result()
 	checkErr(err)
-	return string(result)
+	log.Printf("Generated ID:%d for Key:%s\n", result, key)
+	return strconv.FormatInt(result, 10)
 }
 
 func generateTeams(client *redis.Client, names []string) string {

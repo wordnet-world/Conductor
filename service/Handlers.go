@@ -55,7 +55,7 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	// from the graph for the start node
 	game.StartNode = "startNode123"
 	gameID := db.CreateGame(game)
-	fmt.Fprintf(w, models.CreateHTTPResponse(nil, gameID, true).ToJSON())
+	fmt.Fprintf(w, models.CreateHTTPResponse(nil, map[string]interface{}{"gameID": gameID}, true).ToJSON())
 }
 
 // DeleteGame will delete the game with the matching id

@@ -65,7 +65,16 @@ func DeleteGame(w http.ResponseWriter, r *http.Request) {
 
 // ListGames will return an array of games
 func ListGames(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
 
+	// Check admin password
+	verifyPassword(r)
 }
 
 func verifyPassword(r *http.Request) {
@@ -89,7 +98,7 @@ func verifyPassword(r *http.Request) {
 	}()
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StcmpatusOK)
+	w.WriteHeader(http.StatusOK)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Panicln(err)

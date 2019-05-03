@@ -5,15 +5,15 @@ import (
 )
 
 // Database is the interface for normal database
-type Database interface {
-	CreateGame(game models.Game) string // the game id for the game just created
-	GetGames() []models.Game
+type CacheDatabase interface {
+	CreateGame(game models.CreateGame) string // the game id for the game just created
+	GetGames() []models.CacheGame
 	GetTeams(gameID string) []models.Team
 	DeleteGame(gameID string)
 	SetupDB()
 }
 
 // GetDatabase returns the default database type
-func GetDatabase() Database {
+func GetCacheDatabase() CacheDatabase {
 	return RedisDatabase{}
 }

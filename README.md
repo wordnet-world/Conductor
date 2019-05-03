@@ -48,9 +48,10 @@ Games
 `game:game_id start_time string` // 0 if not in progress
 
 Teams
-`team:game_id:team_id field value`
+`team_id = <number>`
+`team:team_id field value`
 
-`team:game_id:team_id team_id string`
-`team:game_id:team_id name string`
-`team:game_id:team_id score int`
-
+`team:team_id team_id string`
+`team:team_id name string`
+`team:team_id score int`
+`team:team_id member_count int`

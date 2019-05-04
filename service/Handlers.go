@@ -73,6 +73,8 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 		}
 	}()
 
+	// TODO Will need to have special handling if the string Teams is specified in fields
+
 	// Check admin password
 	verifyPassword(r)
 }

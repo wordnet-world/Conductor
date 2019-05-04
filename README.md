@@ -16,7 +16,7 @@ Content-Type: application/json
 ##### Body
 ```json
 {
-    "field" : {<value>}
+    "field" : value
 }
 ```
 #### Responses

@@ -1,6 +1,78 @@
 # Conductor
 The server that handles client requests and communicates with databases and kafka
 
+## API Specification
+
+### Basic Message Structure
+
+#### Requests
+##### Headers
+```
+AdminpPassword: <string>
+Content-Type: application/json
+```
+##### Body
+```json
+{
+    "field" : {<value>}
+}
+```
+#### Responses
+
+##### Body
+```json
+{
+    "data" : {},  // Data and error are interface types in golang, so could be string or map or array, etc
+    "error" : {},
+    "success" : false
+}
+```
+
+### GET's
+
+### POST's
+
+#### CreateGame
+
+##### Endpoint
+
+##### Request
+
+###### Headers
+###### Body
+
+##### Response
+
+###### Body
+
+#### JoinGame
+
+##### Endpoint
+
+##### Request
+
+###### Headers
+###### Body
+
+##### Response
+
+###### Body
+
+#### AdminPasswordCheck
+
+##### Endpoint
+
+##### Request
+
+###### Headers
+###### Body
+
+##### Response
+
+###### Body
+
+### DELETE's
+
 ## Redis Data Model
 
 There are a handful of things we need to keep track of, especially since we strive to keep the application stateless.

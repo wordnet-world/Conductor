@@ -11,6 +11,8 @@ The server that handles client requests and communicates with databases and kafk
 AdminpPassword: <string>
 Content-Type: application/json
 ```
+>Note: Not all endpoints require the AdminPassword header, below it will specify
+
 ##### Body
 ```json
 {
@@ -20,58 +22,246 @@ Content-Type: application/json
 #### Responses
 
 ##### Body
+ 
 ```json
 {
-    "data" : {},  // Data and error are interface types in golang, so could be string or map or array, etc
+    "data" : {},
     "error" : {},
     "success" : false
 }
 ```
 
+> Note: the data and error could be any number of objects, they are stored as `interface{}` types in go
+
 ### GET's
+
+#### ListGames
+
+Used to get all games with specified fields for each game
+
+##### Endpoint
+
+`/listGames`
+
+##### Request
+
+###### Body
+
+```json
+{
+    "fields": ["field1", "field2", "field3"]
+}
+```
+
+>Note: Possible fields include `Name`, `GameID`, `StartNode`, `TimeLimit`, `Teams`, `Status`, and `StartTime`
+
+##### Response
+
+###### Body
+
+```json
+{
+    "data" : [
+        {
+            "gameID":"gameID",
+            "name":"gameName",
+            "startNode":"startNodeID",
+            "timeLimit":100000,
+            "status":"in-progress",
+            "startTime":1556987407,
+            "teams": [
+                {
+                    "teamID":"teamID",
+                    "name":"teamName",
+                    "score":0
+                }
+            ]
+        }
+    ],
+    "error" : null,
+    "success" : true
+}
+```
+
+#### GameInfo
+
+Similar to `ListGames` except only fetches info for the provided `gameID`
+
+##### Endpoint
+
+`/gameInfo?gameID=<gameID>`
+
+##### Request
+
+###### Body
+
+```json
+{
+    "fields":["field1", "field2", "field3"]
+}
+```
+>Note: Possible fields include `Name`, `GameID`, `StartNode`, `TimeLimit`, `Teams`, `Status`, and `StartTime`
+
+##### Response
+
+###### Body
+
+```json
+{
+    "data" : 
+        {
+            "gameID":"gameID",
+            "name":"gameName",
+            "startNode":"startNodeID",
+            "timeLimit":100000,
+            "status":"in-progress",
+            "startTime":1556987407,
+            "teams": [
+                {
+                    "teamID":"teamID",
+                    "name":"teamName",
+                    "score":0
+                }
+            ]
+        },
+    "error" : null,
+    "success" : true
+}
+```
 
 ### POST's
 
 #### CreateGame
 
+Create a game with the provided information, returns the new game's `gameID`
+
 ##### Endpoint
+
+`/createGame`
 
 ##### Request
 
-###### Headers
+###### Header
+
+```
+AdminpPassword: <string>
+```
+
 ###### Body
+
+```json
+{
+    "name": "game-name",
+    "timeLimit": 1000,
+    "teams": ["team1", "team2", "team3"]    
+}
+```
 
 ##### Response
 
 ###### Body
+
+```json
+{
+    "data" : {
+        "gameID": "gameID"
+    },
+    "error" : null,
+    "success" : true
+}
+```
 
 #### JoinGame
 
+**WIP**
+
+Returns a websocket for communicating game state and player actions
+
 ##### Endpoint
+
+`/joinGame?gameID=<gameID>`
 
 ##### Request
 
-###### Headers
 ###### Body
 
 ##### Response
 
 ###### Body
+
+```json
+{
+    "data" : {},
+    "error" : {},
+    "success" : false
+}
+```
 
 #### AdminPasswordCheck
 
 ##### Endpoint
 
+`/adminCheck`
+
 ##### Request
 
-###### Headers
+###### Header
+
+```
+AdminpPassword: <string>
+```
+
 ###### Body
+
+```json
+{}
+```
 
 ##### Response
 
 ###### Body
 
+```json
+{
+    "data" : null,
+    "error" : null,
+    "success" : true
+}
+```
+
 ### DELETE's
+
+#### DeleteGame
+
+##### Endpoint
+
+`/deleteGame?gameID=<gameID>`
+
+##### Request
+
+###### Header
+
+```
+AdminpPassword: <string>
+```
+
+###### Body
+
+```json
+{}
+```
+
+##### Response
+
+###### Body
+
+```json
+{
+    "data" : null,
+    "error" : null,
+    "success" : true
+}
+```
 
 ## Redis Data Model
 
@@ -113,7 +303,7 @@ Games
 
 `game:gameID gameID string`
 `game:gameID name string`
-`game:gameID teams string` // I'll just use a json string
+`game:gameID teamIDs []intToJSONString` // I'll just use a json string
 `game:gameID timeLimit string`
 `game:gameID startNode string`
 `game:gameID status string` // waiting, in-progress, complete
@@ -126,4 +316,3 @@ Teams
 `team:teamID teamID string`
 `team:teamID name string`
 `team:teamID score int`
-`team:teamID memberCount int`

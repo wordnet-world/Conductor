@@ -16,6 +16,8 @@ type CacheGame struct {
 	StartNode string   `json:"startNode"`
 	TimeLimit int      `json:"timeLimit"`
 	TeamIDs   []string `json:"teamIDs"`
+	Status    string   `json:"status"`
+	StartTime int      `json:"startTime"` // This should be unix time probably
 }
 
 // Team is a model of a single team in a Game

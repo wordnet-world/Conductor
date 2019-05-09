@@ -11,8 +11,4 @@ RUN wget https://github.com/neo4j-drivers/seabolt/releases/download/v1.7.3/seabo
     dpkg -i seabolt-1.7.3-Linux-ubuntu-18.04.deb
 RUN echo $GOPATH && \
     make
-
-FROM scratch
-COPY --from=0 /go/src/github.com/wordnet-world/Conductor/Conductor /
-COPY ./config/conductor-conf.json /config/conductor-conf.json
-CMD ["/Conductor"]
+CMD ["/go/src/github.com/wordnet-world/Conductor/Conductor"]

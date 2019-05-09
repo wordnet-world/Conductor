@@ -26,3 +26,8 @@ type Team struct {
 	ID    string `json:"teamID"`
 	Score string `json:"score"`
 }
+
+// ListGameFields is a model for the request to ListGames
+type ListGameFields struct {
+	Fields []string `json:"fields"`
+}

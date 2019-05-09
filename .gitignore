@@ -11,5 +11,7 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+Conductor_linux
+.vscode/
 Conductor
 conductor-conf.json

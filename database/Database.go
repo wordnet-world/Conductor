@@ -12,7 +12,7 @@ type Broker interface {
 	Subscribe(topic string, action func(string))
 }
 
-// Database is the interface for normal database
+// CacheDatabase is the interface for normal database
 type CacheDatabase interface {
 	CreateGame(game models.CreateGame) string // the game id for the game just created
 	GetGames() []models.CacheGame
@@ -25,7 +25,7 @@ type CacheDatabase interface {
 type Graph interface {
 }
 
-// GetDatabase returns the default database type
+// GetCacheDatabase returns the default cache database type
 func GetCacheDatabase() CacheDatabase {
 	return RedisDatabase{}
 }

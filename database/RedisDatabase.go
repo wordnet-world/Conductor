@@ -29,9 +29,13 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 		"startNode": game.StartNode,
 		"timeLimit": game.TimeLimit,
 		"teamIDs":   teamIDs,
+		"status":    0,
+		"startTime": 0,
 	}
 	log.Printf("CreateGame fields: %v\n", gameFieldsMap)
 	err := client.HMSet(gameKey, gameFieldsMap).Err()
+	checkErr(err)
+	err = client.SAdd("games", gameKey).Err()
 	checkErr(err)
 
 	return game.ID
@@ -39,7 +43,32 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 
 // GetGames returns a slice of Game objects
 func (redisDatabase RedisDatabase) GetGames() []models.CacheGame {
-	return nil
+	client := connectToRedis()
+
+	keys, err := client.SMembers("games").Result()
+	checkErr(err)
+	games := make([]models.CacheGame, len(keys))
+
+	for i, key := range keys {
+		game, err := client.HGetAll(key).Result()
+		checkErr(err)
+		timeLimit, err := strconv.Atoi(game["timeLimit"])
+		checkErr(err)
+		var teamIds []string
+		err = json.Unmarshal([]byte(game["teamIDs"]), &teamIds)
+		checkErr(err)
+		startTime, err := strconv.Atoi(game["startTime"])
+		checkErr(err)
+
+		games[i].ID = game["gameID"]
+		games[i].Name = game["name"]
+		games[i].StartNode = game["startNode"]
+		games[i].TimeLimit = timeLimit
+		games[i].TeamIDs = teamIds
+		games[i].Status = game["status"]
+		games[i].StartTime = startTime
+	}
+	return games
 }
 
 // GetTeams returns a slice of Team objects for a given Game
@@ -55,11 +84,11 @@ func (redisDatabase RedisDatabase) DeleteGame(gameID string) {
 // SetupDB should be run as the server starts to clear the DB and
 // set the counters for uuids
 func (redisDatabase RedisDatabase) SetupDB() {
-	defer func() {
+	/*defer func() {
 		if recovery := recover(); recovery != nil {
 			log.Println(recovery)
 		}
-	}()
+	}()*/
 
 	client := connectToRedis()
 

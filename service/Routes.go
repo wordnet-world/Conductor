@@ -47,6 +47,12 @@ var routes = Routes{
 		"/deleteGame",
 		DeleteGame,
 	},
+	Route{
+		"List_Games",
+		"GET",
+		"/listGames",
+		ListGames,
+	},
 	/*Route{
 		"Tutor_Store",
 		"POST",

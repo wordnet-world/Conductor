@@ -7,7 +7,7 @@ import "github.com/neo4j/neo4j-go-driver/neo4j"
 type Neo4jDatabase struct {
 }
 
-func helloWorld(uri, username, password string) (string, error) {
+func HelloWorld(uri, username, password string) (string, error) {
 	var (
 		err      error
 		driver   neo4j.Driver
@@ -15,8 +15,13 @@ func helloWorld(uri, username, password string) (string, error) {
 		result   neo4j.Result
 		greeting interface{}
 	)
+	useConsoleLogger := func(level neo4j.LogLevel) func(config *neo4j.Config) {
+		return func(config *neo4j.Config) {
+			config.Log = neo4j.ConsoleLogger(level)
+		}
+	}
 
-	driver, err = neo4j.NewDriver(uri, neo4j.BasicAuth(username, password, ""))
+	driver, err = neo4j.NewDriver(uri, neo4j.BasicAuth(username, password, ""), useConsoleLogger(neo4j.ERROR))
 	if err != nil {
 		return "", err
 	}
@@ -30,7 +35,7 @@ func helloWorld(uri, username, password string) (string, error) {
 
 	greeting, err = session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
 		result, err = transaction.Run(
-			"CREATE (a:Greeting) SET a.message = $message RETURN a.message + ', from node ' + id(a)",
+			"MERGE (a:Greeting) SET a.message = $message RETURN a.message + ', from node ' + id(a)",
 			map[string]interface{}{"message": "hello, world"})
 		if err != nil {
 			return nil, err

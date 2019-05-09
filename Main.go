@@ -18,7 +18,7 @@ func main() {
 	log.Printf("Starting on port %d\n", PORT)
 
 	// flush/setup DB
-	rdb := database.GetDatabase()
+	rdb := database.GetCacheDatabase()
 	rdb.SetupDB()
 
 	// start router to allow connections

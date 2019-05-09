@@ -301,12 +301,14 @@ Games
 `gameID = <number>`
 `game:gameID field value`
 
+`games [gameID1key, gameID2key]` // a set of gameIDs, easier when getting all games
+
 `game:gameID gameID string`
 `game:gameID name string`
 `game:gameID teamIDs []intToJSONString` // I'll just use a json string
 `game:gameID timeLimit string`
 `game:gameID startNode string`
-`game:gameID status string` // waiting, in-progress, complete
+`game:gameID status string` // waiting (0), in-progress (1), complete (2)
 `game:gameID startTime string` // 0 if not in progress
 
 Teams

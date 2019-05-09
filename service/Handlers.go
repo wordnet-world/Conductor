@@ -48,7 +48,10 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 		log.Panicln("Could not read the body of the message")
 	}
 	log.Printf("Received body: %s\n", string(body))
-	json.Unmarshal(body, &game)
+	err = json.Unmarshal(body, &game)
+	if err != nil {
+		log.Panicln("Could not unmarshall body into game object")
+	}
 	log.Printf("This is the json %v\n", game)
 
 	// TODO use graph database to get a random root node
@@ -64,6 +67,7 @@ func DeleteGame(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListGames will return an array of games
+// For convenience I will return everything if the no fields are specified
 func ListGames(w http.ResponseWriter, r *http.Request) {
 	// TODO consider refactoring to use recover package
 	defer func() {
@@ -76,6 +80,30 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 
 	// Check admin password
 	verifyPassword(r)
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Panicln("Could not read the body of the message")
+	}
+	log.Printf("Received body: %s\n", string(body))
+
+	fields := models.ListGameFields{}
+	err = json.Unmarshal(body, &fields)
+	if err != nil {
+		log.Panicln("Could not unmarshall body into fields object")
+	}
+	log.Printf("This is the json %v\n", fields)
+
+	db := database.GetCacheDatabase()
+
+	if len(fields.Fields) == 0 {
+		games := db.GetGames()
+		log.Printf("Here are the games%v\n", games)
+		fmt.Fprintln(w, models.CreateHTTPResponse("blah", nil, true).ToJSON())
+	} else {
+		// do later, handle sending only a subset
+		fmt.Fprintln(w, models.CreateHTTPResponse("blah", nil, true).ToJSON())
+	}
 
 }
 

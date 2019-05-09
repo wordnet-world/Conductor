@@ -84,11 +84,11 @@ func (redisDatabase RedisDatabase) DeleteGame(gameID string) {
 // SetupDB should be run as the server starts to clear the DB and
 // set the counters for uuids
 func (redisDatabase RedisDatabase) SetupDB() {
-	defer func() {
+	/*defer func() {
 		if recovery := recover(); recovery != nil {
 			log.Println(recovery)
 		}
-	}()
+	}()*/
 
 	client := connectToRedis()
 

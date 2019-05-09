@@ -9,8 +9,4 @@ RUN git clone https://github.com/edenhill/librdkafka.git && \
     make install
 RUN echo $GOPATH && \
     make
-
-FROM scratch
-COPY --from=0 /go/src/github.com/wordnet-world/Conductor/Conductor /
-COPY ./config/conductor-conf.json /config/conductor-conf.json
-CMD ["/Conductor"]
+CMD ["/go/src/github.com/wordnet-world/Conductor/Conductor"]

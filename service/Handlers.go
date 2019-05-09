@@ -99,12 +99,11 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 	if len(fields.Fields) == 0 {
 		games := db.GetGames()
 		log.Printf("Here are the games%v\n", games)
-		fmt.Fprintln(w, models.CreateHTTPResponse("blah", nil, true).ToJSON())
+		fmt.Fprintln(w, models.CreateHTTPResponse("blah", games, true).ToJSON())
 	} else {
 		// do later, handle sending only a subset
 		fmt.Fprintln(w, models.CreateHTTPResponse("blah", nil, true).ToJSON())
 	}
-
 }
 
 func verifyPassword(r *http.Request) {

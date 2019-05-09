@@ -21,6 +21,10 @@ type CacheDatabase interface {
 	SetupDB()
 }
 
+// Graph is an interface abstraction for a graph store
+type Graph interface {
+}
+
 // GetDatabase returns the default database type
 func GetCacheDatabase() CacheDatabase {
 	return RedisDatabase{}

@@ -40,9 +40,9 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	// Check admin password
 	verifyPassword(r)
 
-	db := database.GetDatabase()
+	db := database.GetCacheDatabase()
 
-	game := models.Game{}
+	game := models.CreateGame{}
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Panicln("Could not read the body of the message")
@@ -72,11 +72,11 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
 		}
 	}()
-
 	// TODO Will need to have special handling if the string Teams is specified in fields
 
 	// Check admin password
 	verifyPassword(r)
+
 }
 
 func verifyPassword(r *http.Request) {

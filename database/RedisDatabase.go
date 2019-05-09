@@ -38,7 +38,7 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 }
 
 // GetGames returns a slice of Game objects
-func (redisDatabase RedisDatabase) GetGames() []models.CreateGame {
+func (redisDatabase RedisDatabase) GetGames() []models.CacheGame {
 	return nil
 }
 

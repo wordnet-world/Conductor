@@ -12,6 +12,6 @@
 *.out
 
 Conductor_linux
-
-conductor-conf.json
 .vscode/
+Conductor
+conductor-conf.json

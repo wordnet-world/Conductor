@@ -12,7 +12,6 @@ type HTTPResponse struct {
 	Data    interface{} `json:"data"`
 	Error   interface{} `json:"error"`
 	Success bool        `json:"success"`
-	Count   int         `json:"count"`
 }
 
 // ToJSON returns the Json string representation
@@ -28,6 +27,5 @@ func CreateHTTPResponse(error interface{}, data interface{}, success bool) HTTPR
 		Data:    data,
 		Error:   error,
 		Success: success,
-		Count:   0,
 	}
 }

@@ -40,9 +40,9 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 	// Check admin password
 	verifyPassword(r)
 
-	db := database.GetDatabase()
+	db := database.GetCacheDatabase()
 
-	game := models.Game{}
+	game := models.CreateGame{}
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Panicln("Could not read the body of the message")
@@ -65,6 +65,17 @@ func DeleteGame(w http.ResponseWriter, r *http.Request) {
 
 // ListGames will return an array of games
 func ListGames(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+	// TODO Will need to have special handling if the string Teams is specified in fields
+
+	// Check admin password
+	verifyPassword(r)
 
 }
 
@@ -89,7 +100,7 @@ func verifyPassword(r *http.Request) {
 	}()
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StcmpatusOK)
+	w.WriteHeader(http.StatusOK)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Panicln(err)

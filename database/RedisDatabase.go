@@ -15,7 +15,7 @@ type RedisDatabase struct {
 }
 
 // CreateGame allows for game creation when providing a game model, returns the new gameID
-func (redisDatabase RedisDatabase) CreateGame(game models.Game) string {
+func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 	// TODO add a recover to delete hash on err, and then pass along the panic
 	// if the delete fails notify the user of the id and that it should be deleted
 	// or that the database is in an uncertain state
@@ -24,11 +24,11 @@ func (redisDatabase RedisDatabase) CreateGame(game models.Game) string {
 	gameKey := fmt.Sprintf("game:%s", game.ID)
 	teamIDs := generateTeams(client, game.Teams)
 	gameFieldsMap := map[string]interface{}{
-		"game_id":    game.ID,
-		"name":       game.Name,
-		"start_node": game.StartNode,
-		"time_limit": game.TimeLimit,
-		"teams":      teamIDs,
+		"gameID":    game.ID,
+		"name":      game.Name,
+		"startNode": game.StartNode,
+		"timeLimit": game.TimeLimit,
+		"teamIDs":   teamIDs,
 	}
 	log.Printf("CreateGame fields: %v\n", gameFieldsMap)
 	err := client.HMSet(gameKey, gameFieldsMap).Err()
@@ -38,7 +38,7 @@ func (redisDatabase RedisDatabase) CreateGame(game models.Game) string {
 }
 
 // GetGames returns a slice of Game objects
-func (redisDatabase RedisDatabase) GetGames() []models.Game {
+func (redisDatabase RedisDatabase) GetGames() []models.CacheGame {
 	return nil
 }
 
@@ -102,7 +102,7 @@ func generateTeams(client *redis.Client, names []string) string {
 	for i, name := range names {
 		teamIDs[i] = generateUUID(client, "team:id")
 		teamKey := fmt.Sprintf("team:%s", teamIDs[i])
-		teamFieldsMap := map[string]interface{}{"team_id": teamIDs[i], "name": name, "score": 0}
+		teamFieldsMap := map[string]interface{}{"teamID": teamIDs[i], "name": name, "score": 0}
 		err := client.HMSet(teamKey, teamFieldsMap).Err()
 		checkErr(err)
 	}

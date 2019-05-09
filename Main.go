@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -20,6 +21,12 @@ func main() {
 	// flush/setup DB
 	rdb := database.GetCacheDatabase()
 	rdb.SetupDB()
+
+	res, err := database.HelloWorld("bolt://127.0.0.1:7687", "neo4j", "neo4j1")
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(res)
 
 	// start router to allow connections
 	router := service.NewRouter()

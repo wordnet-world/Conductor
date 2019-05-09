@@ -2,6 +2,7 @@ FROM golang:1.12
 
 COPY . /go/src/github.com/wordnet-world/Conductor
 WORKDIR /go/src/github.com/wordnet-world/Conductor
+RUN apt update && apt install librdkafka-dev -y
 RUN echo $GOPATH && \
     make build-linux
 

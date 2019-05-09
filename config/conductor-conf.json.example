@@ -1,13 +1,12 @@
 {
-    "couchDB" :{
-        "databasePort": <PORT>,
-        "connectionString": "<URL>",
-        "username": "<USERNAME>",
-        "password": "<PASSWORD>",
-        "database": "<NAME OF INTERNAL DATABASE IN COUCHDB>"
+    "redis" :{
+        "port": <PORT>,
+        "address": "<ADDRESS>",
+        "database": <NUMBER FOR REDIS DB>,
+        "password": "<PASSWORD>"
     },
-    "roleService" : {
-        "url" : "<URL>"
+    "wordnetWorld" :{
+        "adminPassword": "<PASSWORD>"
     }
 }
 

@@ -1,34 +1,80 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"log"
 	"net/http"
+
+	"github.com/wordnet-world/Conductor/database"
+	"github.com/wordnet-world/Conductor/models"
 	//"github.com/google/go-cmp/cmp"
 )
 
-// End point to verify connection
+// HeartBeat end point to verify connection
 func HeartBeat(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintln(w, "Hello World!")
+	fmt.Fprintln(w, "I'm Alive!")
 }
 
+// AdminPasswordCheck determines if the client can access the admin pages
 func AdminPasswordCheck(w http.ResponseWriter, r *http.Request) {
-
+	// TODO: Remember to defer some recovery code here
 }
 
+// JoinGame this will be fun, will need to return a websocket
 func JoinGame(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// CreateGame will create a game with the specified configuration
 func CreateGame(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
 
+	// Check admin password
+	verifyPassword(r)
+
+	db := database.GetDatabase()
+
+	game := models.Game{}
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Panicln("Could not read the body of the message")
+	}
+	log.Printf("Received body: %s\n", string(body))
+	json.Unmarshal(body, &game)
+	log.Printf("This is the json %v\n", game)
+
+	// TODO use graph database to get a random root node
+	// from the graph for the start node
+	game.StartNode = "startNode123"
+	gameID := db.CreateGame(game)
+	fmt.Fprintf(w, models.CreateHTTPResponse(nil, map[string]interface{}{"gameID": gameID}, true).ToJSON())
 }
 
+// DeleteGame will delete the game with the matching id
 func DeleteGame(w http.ResponseWriter, r *http.Request) {
 
 }
 
+// ListGames will return an array of games
 func ListGames(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func verifyPassword(r *http.Request) {
+	adminPassword := r.Header["Adminpassword"] // TODO: Need to capitalize P and hopefully it'll still work, Postman sends this
+	if len(adminPassword) != 1 {
+		log.Panicln("Malformed header 'AdminPassword'")
+	} else if adminPassword[0] != models.Config.Wordnet.AdminPassword {
+		log.Panicln("Incorrect Admin Password")
+	}
 }
 
 // Store handles POST requests to /store
@@ -43,7 +89,7 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StcmpatusOK)
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
 		log.Panicln(err)

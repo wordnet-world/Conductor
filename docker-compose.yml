@@ -1,0 +1,12 @@
+version: '3'
+services:
+  redis:
+    image: redis:latest
+    ports:
+      - "6379"
+  conductor:
+    build: .
+    ports: 
+      - "8675"
+    depends_on:
+      - "redis"

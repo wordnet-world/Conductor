@@ -63,7 +63,24 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 
 // DeleteGame will delete the game with the matching id
 func DeleteGame(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
 
+	// Check admin password
+	verifyPassword(r)
+
+	db := database.GetCacheDatabase()
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Panicln("Could not read the body of the message")
+	}
+	log.Printf("Received body: %s\n", string(body))
 }
 
 // ListGames will return an array of games

@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/wordnet-world/Conductor/database"
-
 	"github.com/wordnet-world/Conductor/service"
 )
 
@@ -19,14 +18,20 @@ func main() {
 	log.Printf("Starting on port %d\n", PORT)
 
 	// flush/setup DB
-	rdb := database.GetCacheDatabase()
-	rdb.SetupDB()
 
-	res, err := database.HelloWorld("bolt://127.0.0.1:7687", "neo4j", "neo4j1")
+	// rdb := database.GetCacheDatabase()
+	// rdb.SetupDB()
+
+	graph := database.GetGraphDatabase()
+	err := graph.Connect("bolt://localhost:7687", "neo4j", "neo4j1")
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
+	} else {
+		root, _ := graph.GetRoot()
+		nodes, _ := graph.GetNeighbors(root)
+		fmt.Println(root)
+		fmt.Println(nodes)
 	}
-	fmt.Println(res)
 
 	// start router to allow connections
 	router := service.NewRouter()

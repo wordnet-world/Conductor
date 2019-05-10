@@ -21,11 +21,19 @@ type CacheDatabase interface {
 	SetupDB()
 }
 
-// Graph is an interface abstraction for a graph store
-type Graph interface {
+// GraphDatabase is an interface abstraction for a graph store
+type GraphDatabase interface {
+	Connect(uri, username, password string) error
+	GetNeighbors(models.Node) ([]models.Node, error)
+	GetRoot() (models.Node, error)
 }
 
 // GetCacheDatabase returns the default cache database type
 func GetCacheDatabase() CacheDatabase {
 	return RedisDatabase{}
+}
+
+// GetGraphDatabase returns the default graph database
+func GetGraphDatabase() GraphDatabase {
+	return NewNeo4jDatabase()
 }

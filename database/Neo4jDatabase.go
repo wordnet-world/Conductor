@@ -1,6 +1,9 @@
 package database
 
 import (
+	"bufio"
+	"os"
+
 	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/wordnet-world/Conductor/models"
 )
@@ -28,9 +31,45 @@ func (db *Neo4jDatabase) Connect(uri, username, password string) error {
 	if err != nil {
 		return err
 	}
-
 	db.driver = driver
+	stage := os.Getenv("STAGE")
+	if stage != "" {
+		err = db.initializeWithDummyData()
+		if err != nil {
+			return err
+		}
+	}
 
+	return nil
+}
+
+func (db *Neo4jDatabase) initializeWithDummyData() error {
+	session, err := db.driver.Session(neo4j.AccessModeWrite)
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Open("config/dummy_neo4j.cypher")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		query := scanner.Text()
+		_, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
+			result, err := transaction.Run(query, nil)
+			return result, err
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
 	return nil
 }
 

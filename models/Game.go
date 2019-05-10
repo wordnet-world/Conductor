@@ -31,3 +31,8 @@ type Team struct {
 type ListGameFields struct {
 	Fields []string `json:"fields"`
 }
+
+// DeleteGameID is a model for the request to DeleteGame
+type DeleteGameID struct {
+	GameID string `json:"gameID"`
+}

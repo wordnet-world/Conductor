@@ -17,7 +17,7 @@ type CacheDatabase interface {
 	CreateGame(game models.CreateGame) string // the game id for the game just created
 	GetGames() []models.CacheGame
 	GetTeams(gameID string) []models.Team
-	DeleteGame(gameID string)
+	DeleteGame(gameID string) bool
 	SetupDB()
 }
 

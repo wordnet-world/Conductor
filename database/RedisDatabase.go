@@ -47,6 +47,10 @@ func (redisDatabase RedisDatabase) GetGames() []models.CacheGame {
 
 	keys, err := client.SMembers("games").Result()
 	checkErr(err)
+	if len(keys) < 1 {
+		log.Panicln("No games found")
+	}
+	log.Printf("keys: %v\n", keys)
 	games := make([]models.CacheGame, len(keys))
 
 	for i, key := range keys {
@@ -77,8 +81,21 @@ func (redisDatabase RedisDatabase) GetTeams(gameID string) []models.Team {
 }
 
 // DeleteGame deletes the Game matching the provided gameID
-func (redisDatabase RedisDatabase) DeleteGame(gameID string) {
+// Currently not handling partial deletes
+func (redisDatabase RedisDatabase) DeleteGame(gameID string) bool {
+	client := connectToRedis()
+	gameKey := fmt.Sprintf("game:%s", gameID)
+	redisTeamIDs, err := client.HGet(gameKey, "teamIDs").Result()
+	checkErr(err)
+	var teamIDs []string
+	err = json.Unmarshal([]byte(redisTeamIDs), &teamIDs)
+	checkErr(err)
+	deleteTeams(client, teamIDs)
+	err = client.HDel(gameKey, "gameID", "name", "startNode", "timeLimit", "teamIDs", "status", "startTime").Err()
+	checkErr(err)
+	err = client.SRem("games", gameKey).Err()
 
+	return true
 }
 
 // SetupDB should be run as the server starts to clear the DB and
@@ -137,6 +154,14 @@ func generateTeams(client *redis.Client, names []string) string {
 	}
 	result, _ := json.Marshal(teamIDs)
 	return string(result)
+}
+
+func deleteTeams(client *redis.Client, teamIDs []string) {
+	for _, ID := range teamIDs {
+		teamKey := fmt.Sprintf("team:%s", ID)
+		err := client.HDel(teamKey, "teamID", "name", "score").Err()
+		checkErr(err)
+	}
 }
 
 func checkErr(err interface{}) {

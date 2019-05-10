@@ -76,11 +76,13 @@ func DeleteGame(w http.ResponseWriter, r *http.Request) {
 
 	db := database.GetCacheDatabase()
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Panicln("Could not read the body of the message")
+	gameIDs, ok := r.URL.Query()["gameID"]
+	if !ok || len(gameIDs) < 1 {
+		log.Panicln("No query parameter 'gameID' specified")
 	}
-	log.Printf("Received body: %s\n", string(body))
+
+	result := db.DeleteGame(gameIDs[0])
+	fmt.Fprintln(w, models.CreateHTTPResponse(nil, gameIDs[0], result).ToJSON())
 }
 
 // ListGames will return an array of games

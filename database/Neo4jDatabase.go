@@ -1,55 +1,127 @@
 package database
 
-import "github.com/neo4j/neo4j-go-driver/neo4j"
+import (
+	"bufio"
+	"os"
+
+	"github.com/neo4j/neo4j-go-driver/neo4j"
+	"github.com/wordnet-world/Conductor/models"
+)
 
 // Neo4jDatabase is a struct that implements the Graph interface
 // providing access to the underlying graph used in the game
 type Neo4jDatabase struct {
+	driver neo4j.Driver
 }
 
-func HelloWorld(uri, username, password string) (string, error) {
-	var (
-		err      error
-		driver   neo4j.Driver
-		session  neo4j.Session
-		result   neo4j.Result
-		greeting interface{}
-	)
+// NewNeo4jDatabase creates a new neo4j database
+func NewNeo4jDatabase() *Neo4jDatabase {
+	return &Neo4jDatabase{}
+}
+
+// Connect Initializes the connection to neo4j, creating the driver
+func (db *Neo4jDatabase) Connect(uri, username, password string) error {
 	useConsoleLogger := func(level neo4j.LogLevel) func(config *neo4j.Config) {
 		return func(config *neo4j.Config) {
 			config.Log = neo4j.ConsoleLogger(level)
 		}
 	}
 
-	driver, err = neo4j.NewDriver(uri, neo4j.BasicAuth(username, password, ""), useConsoleLogger(neo4j.ERROR))
+	driver, err := neo4j.NewDriver(uri, neo4j.BasicAuth(username, password, ""), useConsoleLogger(neo4j.ERROR))
 	if err != nil {
-		return "", err
+		return err
 	}
-	defer driver.Close()
+	db.driver = driver
 
-	session, err = driver.Session(neo4j.AccessModeWrite)
+	stage := os.Getenv("STAGE")
+	if stage != "" {
+		err = initializeWithDummyData(driver)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func initializeWithDummyData(driver neo4j.Driver) error {
+	session, err := driver.Session(neo4j.AccessModeWrite)
 	if err != nil {
-		return "", err
+		return err
 	}
-	defer session.Close()
 
-	greeting, err = session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
-		result, err = transaction.Run(
-			"MERGE (a:Greeting) SET a.message = $message RETURN a.message + ', from node ' + id(a)",
-			map[string]interface{}{"message": "hello, world"})
+	file, err := os.Open("config/dummy_neo4j.cypher")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		query := scanner.Text()
+		_, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
+			result, err := transaction.Run(query, nil)
+			return result, err
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetRoot returns the root node
+func (db *Neo4jDatabase) GetRoot() (models.Node, error) {
+	roots, err := db.getNodes("MATCH (n:Root) RETURN n.Text, ID(n)", map[string]interface{}{})
+	if err != nil {
+		return models.Node{}, err
+	}
+	return roots[0], nil
+}
+
+// GetNeighbors returns the neighbors of a node
+func (db *Neo4jDatabase) GetNeighbors(node models.Node) ([]models.Node, error) {
+	neighbors, err := db.getNodes("MATCH (n) - [] - (a) MATCH (n) WHERE id(n)=$id RETURN a.Text, ID(a)", map[string]interface{}{"id": node.ID})
+	if err != nil {
+		return nil, err
+	}
+	return neighbors, nil
+}
+
+func (db *Neo4jDatabase) getNodes(query string, params map[string]interface{}) ([]models.Node, error) {
+	session, err := db.driver.Session(neo4j.AccessModeRead)
+	if err != nil {
+		return nil, err
+	}
+	response, err := session.ReadTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
+		result, err := transaction.Run(query, params)
+
 		if err != nil {
 			return nil, err
 		}
-
-		if result.Next() {
-			return result.Record().GetByIndex(0), nil
+		nodes := make([]models.Node, 0)
+		for {
+			if result.Next() {
+				text := result.Record().GetByIndex(0).(string)
+				id := result.Record().GetByIndex(1).(int64)
+				nodes = append(nodes, models.Node{
+					Text: text,
+					ID:   id,
+				})
+			} else {
+				break
+			}
 		}
-
-		return nil, result.Err()
+		return nodes, nil
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return greeting.(string), nil
+	final := response.([]models.Node)
+	return final, nil
 }

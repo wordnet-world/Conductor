@@ -23,7 +23,7 @@ func main() {
 	rdb.SetupDB()
 
 	graph := database.GetGraphDatabase()
-	err := graph.Connect("bolt://neo4j:7687", "neo4j", "neo4j")
+	err := graph.Connect("bolt://neo4j:7687", "neo4j", "neo4j1")
 	if err != nil {
 		log.Println(err)
 	} else {

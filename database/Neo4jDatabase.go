@@ -32,9 +32,10 @@ func (db *Neo4jDatabase) Connect(uri, username, password string) error {
 		return err
 	}
 	db.driver = driver
+
 	stage := os.Getenv("STAGE")
 	if stage != "" {
-		err = db.initializeWithDummyData()
+		err = initializeWithDummyData(driver)
 		if err != nil {
 			return err
 		}
@@ -43,8 +44,8 @@ func (db *Neo4jDatabase) Connect(uri, username, password string) error {
 	return nil
 }
 
-func (db *Neo4jDatabase) initializeWithDummyData() error {
-	session, err := db.driver.Session(neo4j.AccessModeWrite)
+func initializeWithDummyData(driver neo4j.Driver) error {
+	session, err := driver.Session(neo4j.AccessModeWrite)
 	if err != nil {
 		return err
 	}

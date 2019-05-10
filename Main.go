@@ -19,11 +19,11 @@ func main() {
 
 	// flush/setup DB
 
-	// rdb := database.GetCacheDatabase()
-	// rdb.SetupDB()
+	rdb := database.GetCacheDatabase()
+	rdb.SetupDB()
 
 	graph := database.GetGraphDatabase()
-	err := graph.Connect("bolt://localhost:7687", "neo4j", "neo4j1")
+	err := graph.Connect("bolt://neo4j:7687", "neo4j", "neo4j")
 	if err != nil {
 		log.Println(err)
 	} else {

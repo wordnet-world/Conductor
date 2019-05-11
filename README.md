@@ -53,7 +53,7 @@ Used to get all games with specified fields for each game
 }
 ```
 
->Note: Possible fields include `Name`, `GameID`, `StartNode`, `TimeLimit`, `Teams`, `Status`, and `StartTime`
+>Note: Possible fields include `name`, `gameID`, `startNode`, `timeLimit`, `teams`, `status`, and `startTime`
 
 ##### Response
 
@@ -100,7 +100,7 @@ Similar to `ListGames` except only fetches info for the provided `gameID`
     "fields":["field1", "field2", "field3"]
 }
 ```
->Note: Possible fields include `Name`, `GameID`, `StartNode`, `TimeLimit`, `Teams`, `Status`, and `StartTime`
+>Note: Possible fields include `name`, `gameID`, `startNode`, `timeLimit`, `teams`, `status`, and `startTime`
 
 ##### Response
 
@@ -308,7 +308,7 @@ Games
 `game:gameID teamIDs []intToJSONString` // I'll just use a json string
 `game:gameID timeLimit string`
 `game:gameID startNode string`
-`game:gameID status string` // waiting (0), in-progress (1), complete (2)
+`game:gameID status string` // waiting, in-progress, complete
 `game:gameID startTime string` // 0 if not in progress
 
 Teams

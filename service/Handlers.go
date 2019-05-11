@@ -19,7 +19,16 @@ func HeartBeat(w http.ResponseWriter, r *http.Request) {
 
 // AdminPasswordCheck determines if the client can access the admin pages
 func AdminPasswordCheck(w http.ResponseWriter, r *http.Request) {
-	// TODO: Remember to defer some recovery code here
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+
+	verifyPassword(r)
+
+	fmt.Fprintln(w, models.CreateHTTPResponse(nil, "Correct AdminPassword", true).ToJSON())
 }
 
 // JoinGame this will be fun, will need to return a websocket
@@ -63,7 +72,26 @@ func CreateGame(w http.ResponseWriter, r *http.Request) {
 
 // DeleteGame will delete the game with the matching id
 func DeleteGame(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
 
+	// Check admin password
+	verifyPassword(r)
+
+	db := database.GetCacheDatabase()
+
+	gameIDs, ok := r.URL.Query()["gameID"]
+	if !ok || len(gameIDs) < 1 {
+		log.Panicln("No query parameter 'gameID' specified")
+	}
+
+	result := db.DeleteGame(gameIDs[0])
+	fmt.Fprintln(w, models.CreateHTTPResponse(nil, gameIDs[0], result).ToJSON())
 }
 
 // ListGames will return an array of games
@@ -97,13 +125,29 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 	db := database.GetCacheDatabase()
 
 	if len(fields.Fields) == 0 {
-		games := db.GetGames()
+		games := db.GetGames([]string{"gameID", "name", "startNode", "timeLimit", "status", "startTime", "teams"})
 		log.Printf("Here are the games%v\n", games)
-		fmt.Fprintln(w, models.CreateHTTPResponse("blah", games, true).ToJSON())
+		fmt.Fprintln(w, models.CreateHTTPResponse(nil, games, true).ToJSON())
 	} else {
-		// do later, handle sending only a subset
-		fmt.Fprintln(w, models.CreateHTTPResponse("blah", nil, true).ToJSON())
+		games := db.GetGames(fields.Fields)
+		log.Printf("Here are the games: %v\n", games)
+		fmt.Fprintln(w, models.CreateHTTPResponse(nil, games, true).ToJSON())
 	}
+}
+
+// GameInfo is like ListGames but for a single game id in the query params
+func GameInfo(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+	// TODO Will need to have special handling if the string Teams is specified in fields
+
+	// Check admin password
+	verifyPassword(r)
 }
 
 func verifyPassword(r *http.Request) {
@@ -114,48 +158,3 @@ func verifyPassword(r *http.Request) {
 		log.Panicln("Incorrect Admin Password")
 	}
 }
-
-// Store handles POST requests to /store
-// This converts the object to a checkoff model and
-// sends it to long term storage
-/*func Store(w http.ResponseWriter, r *http.Request) {
-	defer func() {
-		if recovery := recover(); recovery != nil {
-			log.Println(recovery)
-			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, false).ToJSON())
-		}
-	}()
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(http.StatusOK)
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Panicln(err)
-	}
-
-	log.Printf("Received in body: %v\n", string(body))
-	activeUserModel := models.ActiveUserModel{}
-	json.Unmarshal(body, &activeUserModel)
-	log.Printf("Unmarshalled response %v\n", activeUserModel)
-
-	if cmp.Equal(activeUserModel, models.ActiveUserModel{}) {
-		log.Panic("Incorrect format of Body")
-	}
-
-	db := database.GetDriver()
-	db.Store(models.CreateCheckoff(activeUserModel))
-	log.Println("Stored in DB")
-	fmt.Fprintln(w, models.CreateHTTPResponse(nil, true).ToJSON())
-}
-
-// CSV offers a .csv file for download
-func CSV(w http.ResponseWriter, r *http.Request) {
-	modtime := time.Now()
-
-	w.Header().Add("Content-Disposition", "Attachment")
-
-	db := database.GetDriver()
-	csvString := db.GenerateCSV()
-
-	http.ServeContent(w, r, "random.csv", modtime, strings.NewReader(csvString))
-} */

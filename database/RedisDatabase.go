@@ -29,7 +29,7 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 		"startNode": game.StartNode,
 		"timeLimit": game.TimeLimit,
 		"teamIDs":   teamIDs,
-		"status":    0,
+		"status":    "waiting",
 		"startTime": 0,
 	}
 	log.Printf("CreateGame fields: %v\n", gameFieldsMap)
@@ -42,32 +42,56 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 }
 
 // GetGames returns a slice of Game objects
-func (redisDatabase RedisDatabase) GetGames() []models.CacheGame {
+func (redisDatabase RedisDatabase) GetGames(fields []string) []map[string]interface{} {
 	client := connectToRedis()
 
 	keys, err := client.SMembers("games").Result()
-	checkErr(err)
-	games := make([]models.CacheGame, len(keys))
+	if err != nil {
+		log.Panicln(err)
+	}
+	if len(keys) < 1 {
+		log.Panicln("No games found")
+	}
+	log.Printf("keys: %v\n", keys)
+
+	for i, field := range fields {
+		if field == "teams" {
+			fields[i] = "teamIDs"
+			break
+		}
+	}
+	games := make([]map[string]interface{}, len(keys))
 
 	for i, key := range keys {
-		game, err := client.HGetAll(key).Result()
-		checkErr(err)
-		timeLimit, err := strconv.Atoi(game["timeLimit"])
-		checkErr(err)
-		var teamIds []string
-		err = json.Unmarshal([]byte(game["teamIDs"]), &teamIds)
-		checkErr(err)
-		startTime, err := strconv.Atoi(game["startTime"])
-		checkErr(err)
-
-		games[i].ID = game["gameID"]
-		games[i].Name = game["name"]
-		games[i].StartNode = game["startNode"]
-		games[i].TimeLimit = timeLimit
-		games[i].TeamIDs = teamIds
-		games[i].Status = game["status"]
-		games[i].StartTime = startTime
+		game, err := client.HMGet(key, fields...).Result()
+		if err != nil {
+			log.Panicln(err)
+		}
+		games[i] = make(map[string]interface{})
+		for j, field := range fields {
+			if field == "teamIDs" {
+				var teamIDs []string
+				err = json.Unmarshal([]byte(game[j].(string)), &teamIDs)
+				if err != nil {
+					log.Panicln(err)
+				}
+				games[i]["teams"] = getTeams(client, teamIDs)
+			} else if field == "timeLimit" {
+				games[i][field], err = strconv.Atoi(game[j].(string))
+				if err != nil {
+					log.Panicln(err)
+				}
+			} else if field == "startTime" {
+				games[i][field], err = strconv.Atoi(game[j].(string))
+				if err != nil {
+					log.Panicln(err)
+				}
+			} else {
+				games[i][field] = game[j]
+			}
+		}
 	}
+
 	return games
 }
 
@@ -77,8 +101,21 @@ func (redisDatabase RedisDatabase) GetTeams(gameID string) []models.Team {
 }
 
 // DeleteGame deletes the Game matching the provided gameID
-func (redisDatabase RedisDatabase) DeleteGame(gameID string) {
+// Currently not handling partial deletes
+func (redisDatabase RedisDatabase) DeleteGame(gameID string) bool {
+	client := connectToRedis()
+	gameKey := fmt.Sprintf("game:%s", gameID)
+	redisTeamIDs, err := client.HGet(gameKey, "teamIDs").Result()
+	checkErr(err)
+	var teamIDs []string
+	err = json.Unmarshal([]byte(redisTeamIDs), &teamIDs)
+	checkErr(err)
+	deleteTeams(client, teamIDs)
+	err = client.HDel(gameKey, "gameID", "name", "startNode", "timeLimit", "teamIDs", "status", "startTime").Err()
+	checkErr(err)
+	err = client.SRem("games", gameKey).Err()
 
+	return true
 }
 
 // SetupDB should be run as the server starts to clear the DB and
@@ -137,6 +174,29 @@ func generateTeams(client *redis.Client, names []string) string {
 	}
 	result, _ := json.Marshal(teamIDs)
 	return string(result)
+}
+
+func getTeams(client *redis.Client, teamIDs []string) []models.Team {
+	teams := make([]models.Team, len(teamIDs))
+	for i, teamID := range teamIDs {
+		teamKey := fmt.Sprintf("team:%s", teamID)
+		team, err := client.HGetAll(teamKey).Result()
+		checkErr(err)
+		score, err := strconv.Atoi(team["score"])
+		checkErr(err)
+		teams[i].ID = team["teamID"]
+		teams[i].Name = team["name"]
+		teams[i].Score = score
+	}
+	return teams
+}
+
+func deleteTeams(client *redis.Client, teamIDs []string) {
+	for _, ID := range teamIDs {
+		teamKey := fmt.Sprintf("team:%s", ID)
+		err := client.HDel(teamKey, "teamID", "name", "score").Err()
+		checkErr(err)
+	}
 }
 
 func checkErr(err interface{}) {

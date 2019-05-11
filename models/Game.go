@@ -20,14 +20,30 @@ type CacheGame struct {
 	StartTime int      `json:"startTime"` // This should be unix time probably
 }
 
+// Game has everything
+type Game struct {
+	Name      string `json:"name"`
+	ID        string `json:"gameID"`
+	StartNode string `json:"startNode"`
+	TimeLimit int    `json:"timeLimit"`
+	Status    string `json:"status"`
+	StartTime int    `json:"startTime"` // This should be unix time probably
+	Teams     []Team `json:"teams"`
+}
+
 // Team is a model of a single team in a Game
 type Team struct {
 	Name  string `json:"name"`
 	ID    string `json:"teamID"`
-	Score string `json:"score"`
+	Score int    `json:"score"`
 }
 
 // ListGameFields is a model for the request to ListGames
 type ListGameFields struct {
 	Fields []string `json:"fields"`
+}
+
+// DeleteGameID is a model for the request to DeleteGame
+type DeleteGameID struct {
+	GameID string `json:"gameID"`
 }

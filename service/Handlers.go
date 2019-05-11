@@ -32,9 +32,8 @@ func AdminPasswordCheck(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, models.CreateHTTPResponse(nil, "Correct AdminPassword", true).ToJSON())
 }
 
-// JoinGame this will be fun, will need to return a websocket
+// JoinGame attempts to upgrade the connection into a websocket and initiates GamePlay logic
 func JoinGame(w http.ResponseWriter, r *http.Request) {
-
 	// TODO need to pick a team for this connection, probably through url parameters
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
@@ -45,16 +44,17 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer ws.Close()
+
 	// Incredibly stupid connection that just echos the response with a slight addition
 	for {
-		var msg models.Message
+		var msg models.WordGuess
 		err := ws.ReadJSON(&msg)
 		if err != nil {
 			log.Printf("error: %v", err)
 			break
 		}
 		fmt.Println(msg)
-		msg.Text = msg.Text + " but a Response"
+		msg.Guess = msg.Guess + " but a Response~"
 		ws.WriteJSON(msg)
 	}
 }

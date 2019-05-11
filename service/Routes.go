@@ -37,7 +37,7 @@ var routes = Routes{
 	},
 	Route{
 		"Join_Game",
-		"POST",
+		"GET",
 		"/joinGame",
 		JoinGame,
 	},

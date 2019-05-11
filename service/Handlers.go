@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gorilla/websocket"
 	"github.com/wordnet-world/Conductor/database"
 	"github.com/wordnet-world/Conductor/models"
 	//"github.com/google/go-cmp/cmp"
@@ -34,6 +35,28 @@ func AdminPasswordCheck(w http.ResponseWriter, r *http.Request) {
 // JoinGame this will be fun, will need to return a websocket
 func JoinGame(w http.ResponseWriter, r *http.Request) {
 
+	// TODO need to pick a team for this connection, probably through url parameters
+	upgrader := websocket.Upgrader{
+		CheckOrigin: func(r *http.Request) bool { return true },
+	}
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		log.Println(err)
+		return
+	}
+	defer ws.Close()
+	// Incredibly stupid connection that just echos the response with a slight addition
+	for {
+		var msg models.Message
+		err := ws.ReadJSON(&msg)
+		if err != nil {
+			log.Printf("error: %v", err)
+			break
+		}
+		fmt.Println(msg)
+		msg.Text = msg.Text + " but a Response"
+		ws.WriteJSON(msg)
+	}
 }
 
 // CreateGame will create a game with the specified configuration

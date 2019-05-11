@@ -1,6 +1,14 @@
 # Conductor
 The server that handles client requests and communicates with databases and kafka
 
+## Websocket Details
+
+The `Join Game` endpoint will take from the url query parameter (<TODO>) the team it is joining.  
+This connection will then be upgraded into a websocket via request by this server. This establishes the connection.  
+The endpoint should be formatted like such `ws://<url>/joinGame` (TODO finish query parameter)  
+
+This can be tested locally by using the [Chrome Extension](https://chrome.google.com/webstore/detail/smart-websocket-client/omalebghpgejjiaoknljcfmglgbpocdp?hl=en-US). *Note:* the messages must be in json format according to the models.Message object
+
 ## API Specification
 
 ### Basic Message Structure

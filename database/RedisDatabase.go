@@ -29,7 +29,7 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 		"startNode": game.StartNode,
 		"timeLimit": game.TimeLimit,
 		"teamIDs":   teamIDs,
-		"status":    0,
+		"status":    "waiting",
 		"startTime": 0,
 	}
 	log.Printf("CreateGame fields: %v\n", gameFieldsMap)
@@ -42,36 +42,54 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 }
 
 // GetGames returns a slice of Game objects
-func (redisDatabase RedisDatabase) GetGames() []models.Game {
+func (redisDatabase RedisDatabase) GetGames(fields []string) []map[string]interface{} {
 	client := connectToRedis()
 
 	keys, err := client.SMembers("games").Result()
-	checkErr(err)
+	if err != nil {
+		log.Panicln(err)
+	}
 	if len(keys) < 1 {
 		log.Panicln("No games found")
 	}
 	log.Printf("keys: %v\n", keys)
-	games := make([]models.Game, len(keys))
+
+	for i, field := range fields {
+		if field == "teams" {
+			fields[i] = "teamIDs"
+			break
+		}
+	}
+	games := make([]map[string]interface{}, len(keys))
 
 	for i, key := range keys {
-		game, err := client.HGetAll(key).Result()
-		checkErr(err)
-		timeLimit, err := strconv.Atoi(game["timeLimit"])
-		checkErr(err)
-		var teamIDs []string
-		err = json.Unmarshal([]byte(game["teamIDs"]), &teamIDs)
-		checkErr(err)
-		startTime, err := strconv.Atoi(game["startTime"])
-		checkErr(err)
-
-		games[i].ID = game["gameID"]
-		games[i].Name = game["name"]
-		games[i].StartNode = game["startNode"]
-		games[i].TimeLimit = timeLimit
-		games[i].Status = game["status"]
-		games[i].StartTime = startTime
-
-		games[i].Teams = getTeams(client, teamIDs)
+		game, err := client.HMGet(key, fields...).Result()
+		if err != nil {
+			log.Panicln(err)
+		}
+		games[i] = make(map[string]interface{})
+		for j, field := range fields {
+			if field == "teamIDs" {
+				var teamIDs []string
+				err = json.Unmarshal([]byte(game[j].(string)), &teamIDs)
+				if err != nil {
+					log.Panicln(err)
+				}
+				games[i]["teams"] = getTeams(client, teamIDs)
+			} else if field == "timeLimit" {
+				games[i][field], err = strconv.Atoi(game[j].(string))
+				if err != nil {
+					log.Panicln(err)
+				}
+			} else if field == "startTime" {
+				games[i][field], err = strconv.Atoi(game[j].(string))
+				if err != nil {
+					log.Panicln(err)
+				}
+			} else {
+				games[i][field] = game[j]
+			}
+		}
 	}
 
 	return games

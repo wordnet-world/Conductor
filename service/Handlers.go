@@ -126,13 +126,29 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 	db := database.GetCacheDatabase()
 
 	if len(fields.Fields) == 0 {
-		games := db.GetGames()
+		games := db.GetGames([]string{"gameID", "name", "startNode", "timeLimit", "status", "startTime", "teams"})
 		log.Printf("Here are the games%v\n", games)
-		fmt.Fprintln(w, models.CreateHTTPResponse("blah", games, true).ToJSON())
+		fmt.Fprintln(w, models.CreateHTTPResponse(nil, games, true).ToJSON())
 	} else {
-		// do later, handle sending only a subset
-		fmt.Fprintln(w, models.CreateHTTPResponse("blah", nil, true).ToJSON())
+		games := db.GetGames(fields.Fields)
+		log.Printf("Here are the games: %v\n", games)
+		fmt.Fprintln(w, models.CreateHTTPResponse(nil, games, true).ToJSON())
 	}
+}
+
+// GameInfo is like ListGames but for a single game id in the query params
+func GameInfo(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+	// TODO Will need to have special handling if the string Teams is specified in fields
+
+	// Check admin password
+	verifyPassword(r)
 }
 
 func verifyPassword(r *http.Request) {

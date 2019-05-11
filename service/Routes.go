@@ -53,16 +53,10 @@ var routes = Routes{
 		"/listGames",
 		ListGames,
 	},
-	/*Route{
-		"Tutor_Store",
-		"POST",
-		"/store",
-		Store,
-	},
 	Route{
-		"Staff_CSV",
+		"GameInfo",
 		"GET",
-		"/csv",
-		CSV,
-	},*/
+		"/gameInfo",
+		GameInfo,
+	},
 }

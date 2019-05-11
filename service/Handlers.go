@@ -19,7 +19,6 @@ func HeartBeat(w http.ResponseWriter, r *http.Request) {
 
 // AdminPasswordCheck determines if the client can access the admin pages
 func AdminPasswordCheck(w http.ResponseWriter, r *http.Request) {
-	// TODO: Remember to defer some recovery code here
 	defer func() {
 		if recovery := recover(); recovery != nil {
 			log.Println(recovery)

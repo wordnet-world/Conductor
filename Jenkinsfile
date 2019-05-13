@@ -10,6 +10,10 @@ pipeline {
       }
     }
     stage('Update Kubernetes Config') {
+      when {
+        branch 'master'
+        not { changeRequest() }
+      }
       steps {
         git 'git@github.com:wordnet-world/config.git'
         script {

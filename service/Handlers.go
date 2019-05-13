@@ -127,10 +127,7 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
 		}
 	}()
-	// TODO Will need to have special handling if the string Teams is specified in fields
-
-	// Check admin password
-	verifyPassword(r)
+	// TODO Will need to have special handling if the string Teams is specified in field
 
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {

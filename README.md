@@ -9,6 +9,37 @@ The endpoint should be formatted like such `ws://<url>/joinGame` (TODO finish qu
 
 This can be tested locally by using the [Chrome Extension](https://chrome.google.com/webstore/detail/smart-websocket-client/omalebghpgejjiaoknljcfmglgbpocdp?hl=en-US). *Note:* the messages must be in json format according to the models.Message object
 
+### Message Protocol
+
+There are two types of messages communicated via websocket.
+
+A `GraphUpdate` is sent to the WebApp in order to update the current state of the graph.
+
+- NewNode represents the new node to be added to the graph
+- ConnectingNode represents the node that the NewNode is connected to
+  - If ConnectingNode is nil, this is the root node
+
+```json
+{
+    "newNodeId" : 23,
+    "newNodeText" : "Peter Parker",
+    "connectingNodeId" : 2,
+    "connectingNodeText" : "Spider-man",
+    "undiscoveredNodes" :  3
+}
+```
+
+The second type of message is a `WordGuess`. This is used when a user wants to guess a word and is sent from the WebApp to the server.
+
+- guess is a string of what the user wanted to guess
+
+```json
+{
+    "guess" : "Toby"
+}
+```
+
+
 ## API Specification
 
 ### Basic Message Structure

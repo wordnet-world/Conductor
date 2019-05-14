@@ -49,7 +49,7 @@ var routes = Routes{
 	},
 	Route{
 		"List_Games",
-		"GET",
+		"POST",
 		"/listGames",
 		ListGames,
 	},

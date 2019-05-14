@@ -16,6 +16,7 @@ type Broker interface {
 type CacheDatabase interface {
 	CreateGame(game models.CreateGame) string // the game id for the game just created
 	GetGames(fields []string) []map[string]interface{}
+	GetGame(fields []string, gameID string) map[string]interface{}
 	GetTeams(gameID string) []models.Team
 	DeleteGame(gameID string) bool
 	SetupDB()

@@ -95,6 +95,54 @@ func (redisDatabase RedisDatabase) GetGames(fields []string) []map[string]interf
 	return games
 }
 
+// GetGame is like ListGames but only for the provided gameID
+func (redisDatabase RedisDatabase) GetGame(fields []string, gameID string) map[string]interface{} {
+	client := connectToRedis()
+
+	key := fmt.Sprintf("game:%s", gameID)
+
+	game := make(map[string]interface{})
+	for i, field := range fields {
+		if field == "teams" {
+			fields[i] = "teamIDs"
+			break
+		}
+	}
+
+	for i, field := range fields {
+		if field == "teams" {
+			fields[i] = "teamIDs"
+			break
+		}
+	}
+
+	gameObj, err := client.HMGet(key, fields...).Result()
+	for j, field := range fields {
+		if field == "teamIDs" {
+			var teamIDs []string
+			err = json.Unmarshal([]byte(gameObj[j].(string)), &teamIDs)
+			if err != nil {
+				log.Panicln(err)
+			}
+			game["teams"] = getTeams(client, teamIDs)
+		} else if field == "timeLimit" {
+			game[field], err = strconv.Atoi(gameObj[j].(string))
+			if err != nil {
+				log.Panicln(err)
+			}
+		} else if field == "startTime" {
+			game[field], err = strconv.Atoi(gameObj[j].(string))
+			if err != nil {
+				log.Panicln(err)
+			}
+		} else {
+			game[field] = gameObj[j]
+		}
+	}
+
+	return game
+}
+
 // GetTeams returns a slice of Team objects for a given Game
 func (redisDatabase RedisDatabase) GetTeams(gameID string) []models.Team {
 	return nil

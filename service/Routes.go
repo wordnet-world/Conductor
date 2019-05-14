@@ -54,9 +54,21 @@ var routes = Routes{
 		ListGames,
 	},
 	Route{
-		"GameInfo",
+		"Game_Info",
 		"GET",
 		"/gameInfo",
 		GameInfo,
+	},
+	Route{
+		"List_Teams",
+		"GET",
+		"/listTeams",
+		ListTeams,
+	},
+	Route{
+		"Team_Info",
+		"GET",
+		"/teamInfo",
+		TeamInfo,
 	},
 }

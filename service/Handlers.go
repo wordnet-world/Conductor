@@ -174,8 +174,45 @@ func GameInfo(w http.ResponseWriter, r *http.Request) {
 
 	db := database.GetCacheDatabase()
 	game := db.GetGame(fields, gameIDs[0])
-	log.Printf("Requested game info: %v", game)
+	log.Printf("Requested game info: %v\n", game)
 	fmt.Fprintln(w, models.CreateHTTPResponse(nil, game, true).ToJSON())
+}
+
+// ListTeams is like ListGames except it takes no fields
+func ListTeams(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+
+	db := database.GetCacheDatabase()
+	teams := db.GetTeams()
+	log.Printf("Teams List: %v\n", teams)
+	fmt.Fprintln(w, models.CreateHTTPResponse(nil, teams, true).ToJSON())
+}
+
+// TeamInfo is like ListTeams but for a provided teamID
+func TeamInfo(w http.ResponseWriter, r *http.Request) {
+	// TODO consider refactoring to use recover package
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+
+	teamIDs, ok := r.URL.Query()["teamID"]
+	if !ok || len(teamIDs) < 1 {
+		log.Panicln("No query parameter 'gameID' specified")
+	}
+
+	db := database.GetCacheDatabase()
+	team := db.GetTeam(teamIDs[0])
+	log.Printf("Team info: %v\n", team)
+	fmt.Fprintln(w, models.CreateHTTPResponse(nil, team, true).ToJSON())
 }
 
 func verifyPassword(r *http.Request) {

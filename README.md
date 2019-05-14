@@ -166,6 +166,66 @@ gameID
 }
 ```
 
+#### ListTeams
+
+Similar to `ListGames` except gets all Teams
+
+##### Endpoint
+
+`/listTeams`
+
+##### Request
+
+##### Response
+
+###### Body
+
+```json
+{
+    "data" : [
+        {
+            "teamID":"teamID",
+            "name":"teamName",
+            "score":0
+        }
+    ],
+    "error" : null,
+    "success" : true
+}
+```
+
+#### TeamInfo
+
+Similar to `ListTeams` except for only for the given teamID
+
+##### Endpoint
+
+`/teamInfo?teamID=<teamID>`
+
+##### Request
+
+###### Query Parameters
+
+```json
+teamID
+```
+
+##### Response
+
+###### Body
+
+```json
+{
+    "data" : {
+            "teamID":"teamID",
+            "name":"teamName",
+            "score":0
+    },
+    "error" : null,
+    "success" : true
+}
+```
+
 ### POST's
 
 #### CreateGame

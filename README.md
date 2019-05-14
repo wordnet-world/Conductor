@@ -29,13 +29,15 @@ A `GraphUpdate` is sent to the WebApp in order to update the current state of th
 }
 ```
 
-The second type of message is a `WordGuess`. This is used when a user wants to guess a word and is sent from the WebApp to the server.
+The second type of message is a `WordGuess`. This is used when a user wants to guess a word and is sent from the WebApp to the server and back.
 
 - guess is a string of what the user wanted to guess
+- correct is a boolean that represents whether or not the guess was correct (Not used when the WebApp sends to the backend)
 
 ```json
 {
     "guess" : "Toby"
+    "correct" : true
 }
 ```
 

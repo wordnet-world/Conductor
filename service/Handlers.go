@@ -46,18 +46,7 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
-	// Incredibly stupid connection that just echos the response with a slight addition
-	for {
-		var msg models.WordGuess
-		err := ws.ReadJSON(&msg)
-		if err != nil {
-			log.Printf("error: %v", err)
-			break
-		}
-		fmt.Println(msg)
-		msg.Guess = msg.Guess + " but a Response~"
-		ws.WriteJSON(msg)
-	}
+	PlayGame(ws, "CHANGE ME LATER") // TODO
 }
 
 // CreateGame will create a game with the specified configuration

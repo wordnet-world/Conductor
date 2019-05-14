@@ -7,9 +7,8 @@ import (
 // Broker is an interface which allows you to Publish a message
 // and subscribe to a particular topic with an action to take
 type Broker interface {
-	Connect()
-	Publish(message string)
-	Subscribe(topic string, action func(string))
+	Publish(message string) error
+	Subscribe(action func(string)) error
 }
 
 // CacheDatabase is the interface for normal database
@@ -37,4 +36,9 @@ func GetCacheDatabase() CacheDatabase {
 // GetGraphDatabase returns the default graph database
 func GetGraphDatabase() GraphDatabase {
 	return NewNeo4jDatabase()
+}
+
+// GetBroker returns an implementation of the Broker Interface
+func GetBroker(topic string) (Broker, error) {
+	return NewKafkaBroker(topic)
 }

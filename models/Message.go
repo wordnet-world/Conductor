@@ -14,5 +14,6 @@ type GraphUpdate struct {
 
 // WordGuess represents a guess of a word
 type WordGuess struct {
-	Guess string `json:"guess"`
+	Guess   string `json:"guess"`
+	Correct bool   `json:"correct"`
 }

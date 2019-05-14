@@ -80,16 +80,14 @@ Used to get all games with specified fields for each game
 
 ##### Endpoint
 
-`/listGames`
+`/listGames?fields=name,gameID,startNode`
 
 ##### Request
 
-###### Body
+###### Query Parameters
 
 ```json
-{
-    "fields": ["field1", "field2", "field3"]
-}
+fields
 ```
 
 >Note: Possible fields include `name`, `gameID`, `startNode`, `timeLimit`, `teams`, `status`, and `startTime`
@@ -128,17 +126,17 @@ Similar to `ListGames` except only fetches info for the provided `gameID`
 
 ##### Endpoint
 
-`/gameInfo?gameID=<gameID>`
+`/gameInfo?gameID=<gameID>&fields=name,timeLimit,teams`
 
 ##### Request
 
-###### Body
+###### Query Params
 
 ```json
-{
-    "fields":["field1", "field2", "field3"]
-}
+fields
+gameID
 ```
+
 >Note: Possible fields include `name`, `gameID`, `startNode`, `timeLimit`, `teams`, `status`, and `startTime`
 
 ##### Response

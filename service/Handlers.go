@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/gorilla/websocket"
 	"github.com/wordnet-world/Conductor/database"
@@ -129,27 +130,21 @@ func ListGames(w http.ResponseWriter, r *http.Request) {
 	}()
 	// TODO Will need to have special handling if the string Teams is specified in field
 
-	body, err := ioutil.ReadAll(r.Body)
-	if err != nil {
-		log.Panicln("Could not read the body of the message")
+	fieldParam, ok := r.URL.Query()["fields"]
+	if !ok || len(fieldParam) < 1 {
+		log.Panicln("No query parameter 'fields' specified")
 	}
-	log.Printf("Received body: %s\n", string(body))
 
-	fields := models.ListGameFields{}
-	err = json.Unmarshal(body, &fields)
-	if err != nil {
-		log.Panicln("Could not unmarshall body into fields object")
-	}
-	log.Printf("This is the json %v\n", fields)
+	fields := strings.Split(fieldParam[0], ",")
 
 	db := database.GetCacheDatabase()
 
-	if len(fields.Fields) == 0 {
+	if len(fields) == 0 {
 		games := db.GetGames([]string{"gameID", "name", "startNode", "timeLimit", "status", "startTime", "teams"})
 		log.Printf("Here are the games%v\n", games)
 		fmt.Fprintln(w, models.CreateHTTPResponse(nil, games, true).ToJSON())
 	} else {
-		games := db.GetGames(fields.Fields)
+		games := db.GetGames(fields)
 		log.Printf("Here are the games: %v\n", games)
 		fmt.Fprintln(w, models.CreateHTTPResponse(nil, games, true).ToJSON())
 	}
@@ -164,10 +159,23 @@ func GameInfo(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
 		}
 	}()
-	// TODO Will need to have special handling if the string Teams is specified in fields
 
-	// Check admin password
-	verifyPassword(r)
+	fieldParam, ok := r.URL.Query()["fields"]
+	if !ok || len(fieldParam) < 1 {
+		log.Panicln("No query parameter 'fields' specified")
+	}
+
+	fields := strings.Split(fieldParam[0], ",")
+
+	gameIDs, ok := r.URL.Query()["gameID"]
+	if !ok || len(gameIDs) < 1 {
+		log.Panicln("No query parameter 'gameID' specified")
+	}
+
+	db := database.GetCacheDatabase()
+	game := db.GetGame(fields, gameIDs[0])
+	log.Printf("Requested game info: %v", game)
+	fmt.Fprintln(w, models.CreateHTTPResponse(nil, game, true).ToJSON())
 }
 
 func verifyPassword(r *http.Request) {

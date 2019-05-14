@@ -75,7 +75,7 @@ func (redisDatabase RedisDatabase) GetGames(fields []string) []map[string]interf
 				if err != nil {
 					log.Panicln(err)
 				}
-				games[i]["teams"] = getTeams(client, teamIDs)
+				games[i]["teams"] = getTeamData(client, teamIDsToKeys(teamIDs))
 			} else if field == "timeLimit" {
 				games[i][field], err = strconv.Atoi(game[j].(string))
 				if err != nil {
@@ -124,7 +124,7 @@ func (redisDatabase RedisDatabase) GetGame(fields []string, gameID string) map[s
 			if err != nil {
 				log.Panicln(err)
 			}
-			game["teams"] = getTeams(client, teamIDs)
+			game["teams"] = getTeamData(client, teamIDsToKeys(teamIDs))
 		} else if field == "timeLimit" {
 			game[field], err = strconv.Atoi(gameObj[j].(string))
 			if err != nil {
@@ -144,8 +144,22 @@ func (redisDatabase RedisDatabase) GetGame(fields []string, gameID string) map[s
 }
 
 // GetTeams returns a slice of Team objects for a given Game
-func (redisDatabase RedisDatabase) GetTeams(gameID string) []models.Team {
-	return nil
+func (redisDatabase RedisDatabase) GetTeams() []models.Team {
+	client := connectToRedis()
+
+	teamKeys, err := client.SMembers("teams").Result()
+	checkErr(err)
+
+	teams := getTeamData(client, teamKeys)
+	return teams
+}
+
+// GetTeam is like GetTeams but for a single teamID
+func (redisDatabase RedisDatabase) GetTeam(teamID string) models.Team {
+	client := connectToRedis()
+	teamIDs := []string{teamID}
+	teams := getTeamData(client, teamIDsToKeys(teamIDs))
+	return teams[0]
 }
 
 // DeleteGame deletes the Game matching the provided gameID
@@ -219,15 +233,17 @@ func generateTeams(client *redis.Client, names []string) string {
 		teamFieldsMap := map[string]interface{}{"teamID": teamIDs[i], "name": name, "score": 0}
 		err := client.HMSet(teamKey, teamFieldsMap).Err()
 		checkErr(err)
+		err = client.SAdd("teams", teamKey).Err()
+		checkErr(err)
 	}
 	result, _ := json.Marshal(teamIDs)
 	return string(result)
 }
 
-func getTeams(client *redis.Client, teamIDs []string) []models.Team {
-	teams := make([]models.Team, len(teamIDs))
-	for i, teamID := range teamIDs {
-		teamKey := fmt.Sprintf("team:%s", teamID)
+// teamKeys should be the full "team:teamID" strings, so I can reuse the function
+func getTeamData(client *redis.Client, teamKeys []string) []models.Team {
+	teams := make([]models.Team, len(teamKeys))
+	for i, teamKey := range teamKeys {
 		team, err := client.HGetAll(teamKey).Result()
 		checkErr(err)
 		score, err := strconv.Atoi(team["score"])
@@ -237,6 +253,14 @@ func getTeams(client *redis.Client, teamIDs []string) []models.Team {
 		teams[i].Score = score
 	}
 	return teams
+}
+
+func teamIDsToKeys(teamIDs []string) []string {
+	keys := make([]string, len(teamIDs))
+	for i, teamID := range teamIDs {
+		keys[i] = fmt.Sprintf("team:%s", teamID)
+	}
+	return keys
 }
 
 func deleteTeams(client *redis.Client, teamIDs []string) {

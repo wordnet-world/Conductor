@@ -8,7 +8,7 @@ import (
 // and subscribe to a particular topic with an action to take
 type Broker interface {
 	Publish(message string) error
-	Subscribe(action func(string)) error
+	Subscribe(consumerID string, action func(string)) error
 }
 
 // CacheDatabase is the interface for normal database
@@ -19,6 +19,7 @@ type CacheDatabase interface {
 	GetTeams() []models.Team
 	GetTeam(teamID string) models.Team
 	DeleteGame(gameID string) bool
+	GetConsumerID() string
 	SetupDB()
 }
 

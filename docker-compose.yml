@@ -16,7 +16,7 @@ services:
     ports: 
       - "9092"
     environment:
-      - ADVERTISED_HOST=localhost
+      - ADVERTISED_HOST=kafka
       - ADVERTISED_PORT=9092
   conductor:
     build: .

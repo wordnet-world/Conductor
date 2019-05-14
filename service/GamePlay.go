@@ -1,6 +1,7 @@
 package service
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -12,10 +13,23 @@ import (
 
 // PlayGame initiates the basic gameplay loop
 func PlayGame(ws *websocket.Conn, teamID string) {
-	_, err := database.GetBroker(teamID) // _ is the broker
+
+	db := database.GetCacheDatabase()
+	consumerID := db.GetConsumerID()
+
+	consumer, err := database.GetBroker(teamID) // _ is the broker
 	if err != nil {
 		log.Panicln(err)
 	}
+	log.Println(consumer)
+
+	go consumer.Subscribe(consumerID, createConsumerFunction(ws))
+
+	producer, err := database.GetBroker(teamID)
+	if err != nil {
+		log.Panicln(err)
+	}
+	log.Println(producer)
 
 	for {
 		var msg models.WordGuess
@@ -26,6 +40,18 @@ func PlayGame(ws *websocket.Conn, teamID string) {
 		}
 		fmt.Println(msg)
 		msg.Guess = msg.Guess + " but a Response~"
-		ws.WriteJSON(msg)
+		jsonMsg, err := json.Marshal(msg)
+		if err != nil {
+			log.Panicln(err)
+		}
+		producer.Publish(string(jsonMsg))
+		//ws.WriteJSON(msg)
+	}
+}
+
+func createConsumerFunction(ws *websocket.Conn) func(string) {
+	return func(message string) {
+		log.Printf("handler message:%s\n", message)
+		ws.WriteJSON(message)
 	}
 }

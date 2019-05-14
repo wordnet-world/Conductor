@@ -1,6 +1,8 @@
 package database
 
 import (
+	"log"
+
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/wordnet-world/Conductor/models"
 )
@@ -26,8 +28,8 @@ func NewKafkaBroker(topic string) (*KafkaBroker, error) {
 }
 
 // Connect establishes a producer
-func (broker KafkaBroker) connect() error {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": models.Config.Kafka.Address})
+func (broker *KafkaBroker) connect() error {
+	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": models.Config.Kafka.Address, "queue.buffering.max.messages": "5", "queue.buffering.max.ms": "300"})
 	if err != nil {
 		return err
 	}
@@ -39,39 +41,53 @@ func (broker KafkaBroker) connect() error {
 
 // Publish uses the kafka producer to publish a message
 // cannot be used if connect has not been called
-func (broker KafkaBroker) Publish(message string) error {
+func (broker *KafkaBroker) Publish(message string) error {
+	log.Println("Right before is connected")
 	if !broker.connected {
 		return new(invalidStateError)
 	}
+
+	log.Println("Right before Produce")
 
 	broker.producer.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &broker.topic, Partition: kafka.PartitionAny},
 		Value:          []byte(message),
 	}, nil)
 
+	log.Println("Right after produce before flush")
+
 	broker.producer.Flush(15 * 1000)
+
+	log.Println("Right after flush")
 	return nil
 }
 
 // Subscribe subscribes to a kafka topic using a consumer. Will call the action func
 // with whatever message was received everytime consumer consumes
-func (broker KafkaBroker) Subscribe(action func(string)) error {
+func (broker *KafkaBroker) Subscribe(consumerID string, action func(string)) error {
+	log.Println("Right before is connected sub")
 	if !broker.connected {
 		return new(invalidStateError)
 	}
 
+	log.Println("right before consumer creation sub")
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		// "group.id":          "myGroup", // need to handle should be different - may work if we don't actually specify it
+		"group.id":          consumerID,
 		"bootstrap.servers": models.Config.Kafka.Address,
 		"auto.offset.reset": "earliest",
 	})
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
+	log.Println("Right before subscribe to topics")
+
 	c.SubscribeTopics([]string{broker.topic}, nil)
 	for {
+		log.Println("ReadMessage in sub")
 		msg, err := c.ReadMessage(-1)
+		log.Printf("Sub message %s\nError: %v\n", msg, err)
 		if err == nil {
 			action(string(msg.Value))
 		}

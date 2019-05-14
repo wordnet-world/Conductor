@@ -180,6 +180,13 @@ func (redisDatabase RedisDatabase) DeleteGame(gameID string) bool {
 	return true
 }
 
+// GetConsumerID returns a unique id string for creating consumers
+func (redisDatabase RedisDatabase) GetConsumerID() string {
+	client := connectToRedis()
+	consumerID := generateUUID(client, "consumer:id")
+	return consumerID
+}
+
 // SetupDB should be run as the server starts to clear the DB and
 // set the counters for uuids
 func (redisDatabase RedisDatabase) SetupDB() {
@@ -196,6 +203,8 @@ func (redisDatabase RedisDatabase) SetupDB() {
 	err = client.Set("game:id", 0, 0).Err()
 	checkErr(err)
 	err = client.Set("team:id", 0, 0).Err()
+	checkErr(err)
+	err = client.Set("consumer:id", 0, 0).Err()
 	checkErr(err)
 }
 

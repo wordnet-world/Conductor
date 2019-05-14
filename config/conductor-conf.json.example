@@ -5,6 +5,14 @@
         "database": <NUMBER FOR REDIS DB>,
         "password": "<PASSWORD>"
     },
+    "kafka" : {
+        "address": "<ADDRESS>"
+    },
+    "neo4j" : {
+        "uri": "bolt://<ADDRESS>:7687",
+        "username":"<USERNAME>",
+        "password":"<PASSWORD>"
+    },
     "wordnetWorld" :{
         "adminPassword": "<PASSWORD>"
     }

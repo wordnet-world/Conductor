@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/wordnet-world/Conductor/database"
+	"github.com/wordnet-world/Conductor/models"
 	"github.com/wordnet-world/Conductor/service"
 )
 
@@ -23,7 +24,7 @@ func main() {
 	rdb.SetupDB()
 
 	graph := database.GetGraphDatabase()
-	err := graph.Connect("bolt://neo4j:7687", "neo4j", "localInsecurePassword")
+	err := graph.Connect(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
 	if err != nil {
 		log.Println(err)
 	} else {

@@ -2,6 +2,7 @@ package database
 
 import (
 	"github.com/confluentinc/confluent-kafka-go/kafka"
+	"github.com/wordnet-world/Conductor/models"
 )
 
 // KafkaBroker is a Broker implementation with Pub/Sub abilities
@@ -26,7 +27,7 @@ func NewKafkaBroker(topic string) (*KafkaBroker, error) {
 
 // Connect establishes a producer
 func (broker KafkaBroker) connect() error {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": "localhost"})
+	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": models.Config.Kafka.Address})
 	if err != nil {
 		return err
 	}
@@ -61,7 +62,7 @@ func (broker KafkaBroker) Subscribe(action func(string)) error {
 
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
 		// "group.id":          "myGroup", // need to handle should be different - may work if we don't actually specify it
-		"bootstrap.servers": "localhost",
+		"bootstrap.servers": models.Config.Kafka.Address,
 		"auto.offset.reset": "earliest",
 	})
 	if err != nil {

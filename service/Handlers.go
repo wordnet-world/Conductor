@@ -46,7 +46,12 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
-	PlayGame(ws, "team1") // TODO
+	teamIDarray, ok := r.URL.Query()["teamID"]
+	if !ok || len(teamIDarray) < 1 {
+		log.Panicln("No query parameter 'teamID' specified")
+	}
+
+	PlayGame(ws, teamIDarray[0])
 }
 
 // CreateGame will create a game with the specified configuration

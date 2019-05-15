@@ -7,7 +7,7 @@ import (
 // Broker is an interface which allows you to Publish a message
 // and subscribe to a particular topic with an action to take
 type Broker interface {
-	Publish(message string) error
+	Publish(message []byte) error
 	Subscribe(consumerID string, action func(string)) error
 }
 

@@ -29,21 +29,20 @@ func PlayGame(ws *websocket.Conn, teamID string) {
 		err := ws.ReadJSON(&msg)
 		if err != nil {
 			log.Printf("error: %v", err)
-			break
 		}
-		msg.Guess = msg.Guess + " but a Response~"
 		jsonMsg, err := json.Marshal(msg)
-		fmt.Printf("message after marshal %s\n", jsonMsg)
 		if err != nil {
 			log.Panicln(err)
 		}
-		broker.Publish(string(jsonMsg))
+		broker.Publish(jsonMsg)
 	}
 }
 
 func createConsumerFunction(ws *websocket.Conn) func(string) {
 	return func(message string) {
-		log.Printf("handler message:%s\n", message)
-		ws.WriteJSON(message)
+		err := ws.WriteMessage(websocket.TextMessage, []byte(message))
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }

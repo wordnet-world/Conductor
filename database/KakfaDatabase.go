@@ -24,7 +24,7 @@ func NewKafkaBroker(topic string) (*KafkaBroker, error) {
 
 // Publish uses the kafka producer to publish a message
 // cannot be used if connect has not been called
-func (broker *KafkaBroker) Publish(message string) error {
+func (broker *KafkaBroker) Publish(message []byte) error {
 	p, err := kafka.NewProducer(&kafka.ConfigMap{
 		"bootstrap.servers":            models.Config.Kafka.Address,
 		"queue.buffering.max.messages": "5",
@@ -37,7 +37,7 @@ func (broker *KafkaBroker) Publish(message string) error {
 
 	err = p.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &broker.topic, Partition: kafka.PartitionAny},
-		Value:          []byte(message),
+		Value:          message,
 	}, deliveryChan)
 
 	if err != nil {

@@ -56,6 +56,8 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 		log.Panicln(err)
 	}
 
+	defer graph.Close()
+
 	root, err := graph.GetRoot()
 	if err != nil {
 		log.Panicln(err)

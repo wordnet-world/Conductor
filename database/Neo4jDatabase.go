@@ -44,6 +44,11 @@ func (db *Neo4jDatabase) Connect(uri, username, password string) error {
 	return nil
 }
 
+// Close closes the connection with the graph database
+func (db *Neo4jDatabase) Close() {
+	db.driver.Close()
+}
+
 func initializeWithDummyData(driver neo4j.Driver) error {
 	session, err := driver.Session(neo4j.AccessModeWrite)
 	if err != nil {

@@ -27,6 +27,7 @@ type CacheDatabase interface {
 // GraphDatabase is an interface abstraction for a graph store
 type GraphDatabase interface {
 	Connect(uri, username, password string) error
+	Close()
 	GetNeighbors(models.Node) ([]models.Node, error)
 	GetRoot() (models.Node, error)
 }

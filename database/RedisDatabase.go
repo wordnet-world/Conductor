@@ -20,6 +20,7 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 	// if the delete fails notify the user of the id and that it should be deleted
 	// or that the database is in an uncertain state
 	client := connectToRedis()
+	defer client.Close()
 	game.ID = generateUUID(client, "game:id")
 	gameKey := fmt.Sprintf("game:%s", game.ID)
 	teamIDs := generateTeams(client, game.Teams)
@@ -37,14 +38,13 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 	checkErr(err)
 	err = client.SAdd("games", gameKey).Err()
 	checkErr(err)
-
 	return game.ID
 }
 
 // GetGames returns a slice of Game objects
 func (redisDatabase RedisDatabase) GetGames(fields []string) []map[string]interface{} {
 	client := connectToRedis()
-
+	defer client.Close()
 	keys, err := client.SMembers("games").Result()
 	if err != nil {
 		log.Panicln(err)
@@ -98,6 +98,7 @@ func (redisDatabase RedisDatabase) GetGames(fields []string) []map[string]interf
 // GetGame is like ListGames but only for the provided gameID
 func (redisDatabase RedisDatabase) GetGame(fields []string, gameID string) map[string]interface{} {
 	client := connectToRedis()
+	defer client.Close()
 
 	key := fmt.Sprintf("game:%s", gameID)
 
@@ -146,7 +147,7 @@ func (redisDatabase RedisDatabase) GetGame(fields []string, gameID string) map[s
 // GetTeams returns a slice of Team objects for a given Game
 func (redisDatabase RedisDatabase) GetTeams() []models.Team {
 	client := connectToRedis()
-
+	defer client.Close()
 	teamKeys, err := client.SMembers("teams").Result()
 	checkErr(err)
 
@@ -157,6 +158,7 @@ func (redisDatabase RedisDatabase) GetTeams() []models.Team {
 // GetTeam is like GetTeams but for a single teamID
 func (redisDatabase RedisDatabase) GetTeam(teamID string) models.Team {
 	client := connectToRedis()
+	defer client.Close()
 	teamIDs := []string{teamID}
 	teams := getTeamData(client, teamIDsToKeys(teamIDs))
 	return teams[0]
@@ -166,6 +168,7 @@ func (redisDatabase RedisDatabase) GetTeam(teamID string) models.Team {
 // Currently not handling partial deletes
 func (redisDatabase RedisDatabase) DeleteGame(gameID string) bool {
 	client := connectToRedis()
+	defer client.Close()
 	gameKey := fmt.Sprintf("game:%s", gameID)
 	redisTeamIDs, err := client.HGet(gameKey, "teamIDs").Result()
 	checkErr(err)
@@ -183,8 +186,44 @@ func (redisDatabase RedisDatabase) DeleteGame(gameID string) bool {
 // GetConsumerID returns a unique id string for creating consumers
 func (redisDatabase RedisDatabase) GetConsumerID() string {
 	client := connectToRedis()
+	defer client.Close()
 	consumerID := generateUUID(client, "consumer:id")
 	return consumerID
+}
+
+// SetupTeamCaches is used in the StartGame endpoint and initializes teams caches
+func (redisDatabase RedisDatabase) SetupTeamCaches(teamIDs []string, root models.Node, neighbors []models.Node) {
+	client := connectToRedis()
+	defer client.Close()
+
+	nodesAsInterfaces := make([]interface{}, len(neighbors))
+	for i, v := range neighbors {
+		nodesAsInterfaces[i] = v.ID
+		key := fmt.Sprintf("node:%d", v.ID)
+		err := client.Set(key, v.Text, 0).Err()
+		if err != nil {
+			log.Panicln(err)
+		}
+	}
+
+	rootKey := fmt.Sprintf("node:%d", root.ID)
+	err := client.Set(rootKey, root.Text, 0).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	for _, teamID := range teamIDs {
+		periphiKey := fmt.Sprintf("periph:%s", teamID)
+		knownKey := fmt.Sprintf("known:%s", teamID)
+		err := client.SAdd(periphiKey, nodesAsInterfaces...).Err()
+		if err != nil {
+			log.Panicln(err)
+		}
+		err = client.SAdd(knownKey, root.ID).Err()
+		if err != nil {
+			log.Panicln(err)
+		}
+	}
 }
 
 // SetupDB should be run as the server starts to clear the DB and
@@ -197,6 +236,7 @@ func (redisDatabase RedisDatabase) SetupDB() {
 	}()*/
 
 	client := connectToRedis()
+	defer client.Close()
 
 	err := client.FlushAll().Err()
 	checkErr(err)

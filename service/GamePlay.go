@@ -15,6 +15,11 @@ import (
 func PlayGame(ws *websocket.Conn, teamID string) {
 
 	db := database.GetCacheDatabase()
+	graph := database.GetGraphDatabase()
+	err := graph.Connect(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
+	if err != nil {
+		log.Panicln(err)
+	}
 	consumerID := db.GetConsumerID()
 
 	broker, err := database.GetBroker(teamID)
@@ -31,6 +36,7 @@ func PlayGame(ws *websocket.Conn, teamID string) {
 			log.Printf("error: %v", err)
 			break
 		}
+
 		jsonMsg, err := json.Marshal(msg)
 		if err != nil {
 			log.Panicln(err)

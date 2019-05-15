@@ -20,6 +20,7 @@ type CacheDatabase interface {
 	GetTeam(teamID string) models.Team
 	DeleteGame(gameID string) bool
 	GetConsumerID() string
+	SetupTeamCaches(teamIDs []string, root models.Node, neighbors []models.Node)
 	SetupDB()
 }
 

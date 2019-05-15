@@ -33,16 +33,92 @@ func AdminPasswordCheck(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, models.CreateHTTPResponse(nil, "Correct AdminPassword", true).ToJSON())
 }
 
+// StartGame asks neo4j for the root node, publishes a graphUpdate to each team's topic
+// start some sort of timer which will send an endgame message
+// Input will be the gameID to start
+func StartGame(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+
+	gameIDarray, ok := r.URL.Query()["gameID"]
+	if !ok || len(gameIDarray) < 1 {
+		log.Panicln("No query parameter 'gameID' specified")
+	}
+
+	db := database.GetCacheDatabase()
+	graph := database.GetGraphDatabase()
+	err := graph.Connect(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	root, err := graph.GetRoot()
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	neighbors, err := graph.GetNeighbors(root)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	games := db.GetGame([]string{"teams"}, gameIDarray[0])
+	teams := games["teams"].([]models.Team) //Forgive me
+	teamIDs := make([]string, len(teams))
+	for i, team := range teams {
+		teamIDs[i] = team.ID
+	}
+	log.Printf("TeamIDs to populate graph cache for: %v\n", teamIDs)
+	db.SetupTeamCaches(teamIDs, root, neighbors)
+
+	graphUpdate := models.GraphUpdate{
+		Guess:              root.Text,
+		Correct:            true,
+		NewNodeID:          root.ID,
+		ConnectingNodeID:   -1,
+		NewNodeText:        root.Text,
+		ConnectingNodeText: "",
+		UndiscoveredNodes:  len(neighbors),
+	}
+	for _, teamID := range teamIDs {
+		broker, err := database.GetBroker(teamID)
+		if err != nil {
+			log.Panicln(err)
+		}
+		msg, err := json.Marshal(graphUpdate)
+		if err != nil {
+			log.Panicln(err)
+		}
+		err = broker.Publish(msg)
+		if err != nil {
+			log.Panicln(err)
+		}
+	}
+
+	successMessage := fmt.Sprintf("Started Game %s", gameIDarray[0])
+	fmt.Fprintln(w, models.CreateHTTPResponse(nil, successMessage, true).ToJSON())
+	// TODO maybe track time of the game and somehow kill it, for now just restart everything
+}
+
 // JoinGame attempts to upgrade the connection into a websocket and initiates GamePlay logic
 func JoinGame(w http.ResponseWriter, r *http.Request) {
-	// TODO need to pick a team for this connection, probably through url parameters
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
-		return
+		log.Panicln(err)
 	}
 	defer ws.Close()
 

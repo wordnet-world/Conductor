@@ -46,7 +46,7 @@ func JoinGame(w http.ResponseWriter, r *http.Request) {
 	}
 	defer ws.Close()
 
-	PlayGame(ws, "CHANGE ME LATER") // TODO
+	PlayGame(ws, "team1") // TODO
 }
 
 // CreateGame will create a game with the specified configuration

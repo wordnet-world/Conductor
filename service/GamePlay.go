@@ -17,19 +17,12 @@ func PlayGame(ws *websocket.Conn, teamID string) {
 	db := database.GetCacheDatabase()
 	consumerID := db.GetConsumerID()
 
-	consumer, err := database.GetBroker(teamID) // _ is the broker
+	broker, err := database.GetBroker(teamID)
 	if err != nil {
 		log.Panicln(err)
 	}
-	log.Println(consumer)
 
-	go consumer.Subscribe(consumerID, createConsumerFunction(ws))
-
-	producer, err := database.GetBroker(teamID)
-	if err != nil {
-		log.Panicln(err)
-	}
-	log.Println(producer)
+	go broker.Subscribe(consumerID, createConsumerFunction(ws))
 
 	for {
 		var msg models.WordGuess
@@ -38,14 +31,13 @@ func PlayGame(ws *websocket.Conn, teamID string) {
 			log.Printf("error: %v", err)
 			break
 		}
-		fmt.Println(msg)
 		msg.Guess = msg.Guess + " but a Response~"
 		jsonMsg, err := json.Marshal(msg)
+		fmt.Printf("message after marshal %s\n", jsonMsg)
 		if err != nil {
 			log.Panicln(err)
 		}
-		producer.Publish(string(jsonMsg))
-		//ws.WriteJSON(msg)
+		broker.Publish(string(jsonMsg))
 	}
 }
 

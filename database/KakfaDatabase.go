@@ -33,8 +33,6 @@ func (broker *KafkaBroker) Publish(message []byte) error {
 
 	deliveryChan := make(chan kafka.Event)
 
-	fmt.Println(message)
-
 	err = p.Produce(&kafka.Message{
 		TopicPartition: kafka.TopicPartition{Topic: &broker.topic, Partition: kafka.PartitionAny},
 		Value:          message,
@@ -75,6 +73,7 @@ func (broker *KafkaBroker) Subscribe(consumerID string, action func(string)) err
 	c.SubscribeTopics([]string{broker.topic}, nil)
 	for {
 		msg, err := c.ReadMessage(-1)
+		log.Printf("Consumed message %v\n", msg)
 		if err == nil {
 			action(string(msg.Value))
 		}

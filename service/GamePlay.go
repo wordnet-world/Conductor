@@ -29,6 +29,7 @@ func PlayGame(ws *websocket.Conn, teamID string) {
 		err := ws.ReadJSON(&msg)
 		if err != nil {
 			log.Printf("error: %v", err)
+			break
 		}
 		jsonMsg, err := json.Marshal(msg)
 		if err != nil {

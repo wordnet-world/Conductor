@@ -57,8 +57,15 @@ func createConsumerFunction(ws *websocket.Conn) func(string) {
 	}
 }
 
-func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatabase, graph database.GraphDatabase) models.GraphUpdate {
-	var graphUpdate models.GraphUpdate
+func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatabase, graph database.GraphDatabase) models.UpdateMessage {
+	updateMessage := models.UpdateMessage{
+		Type:             "update",
+		Guess:            msg.Guess,
+		Correct:          false,
+		NewNodeID:        -1,
+		NewNodeText:      "",
+		NewNodeNeighbors: []int64{},
+	}
 	if !cache.IsFound(msg.Guess, teamID) {
 		log.Printf("Guess not in Found, Guess:%s\n", msg.Guess)
 		nodeID := cache.IsPeriphery(msg.Guess, teamID)
@@ -73,37 +80,30 @@ func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatab
 				log.Panicln(err)
 			}
 
+			neighborIDs := make([]int64, len(neighbors))
+			for i, n := range neighbors {
+				neighborIDs[i] = n.ID
+			}
+
 			log.Printf("Retrieved neighbors from graph: %v\n", neighbors)
 
 			resultNodes, foundNodes := cache.UpdateCache(node, neighbors, teamID)
 			log.Printf("ResultNodes: %v\n", resultNodes)
 			log.Printf("FoundNodes: %v\n", foundNodes)
 
-			if len(foundNodes) > 1 {
+			/*if len(foundNodes) > 1 {
 				log.Panicln("WE HAVE A CYCLE IN THE GRAPH!!!")
-			}
+			}*/
 
-			graphUpdate = models.GraphUpdate{
-				Guess:              msg.Guess,
-				Correct:            true,
-				NewNodeID:          node.ID,
-				ConnectingNodeID:   foundNodes[0].ID,
-				NewNodeText:        node.Text,
-				ConnectingNodeText: foundNodes[0].Text,
-				UndiscoveredNodes:  len(resultNodes),
+			updateMessage = models.UpdateMessage{
+				Type:             "update",
+				Guess:            msg.Guess,
+				Correct:          true,
+				NewNodeID:        node.ID,
+				NewNodeText:      node.Text,
+				NewNodeNeighbors: neighborIDs,
 			}
-
-		}
-	} else {
-		graphUpdate = models.GraphUpdate{
-			Guess:              msg.Guess,
-			Correct:            false,
-			NewNodeID:          -1,
-			ConnectingNodeID:   -1,
-			NewNodeText:        "",
-			ConnectingNodeText: "",
-			UndiscoveredNodes:  0,
 		}
 	}
-	return graphUpdate
+	return updateMessage
 }

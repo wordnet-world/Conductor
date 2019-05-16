@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/wordnet-world/Conductor/database"
@@ -70,7 +71,8 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Neighbors: %v\n", neighbors)
 
-	games := db.GetGame([]string{"teams"}, gameIDarray[0])
+	games := db.GetGame([]string{"teams", "timeLimit"}, gameIDarray[0])
+	timeLimit := games["timeLimit"].(int)
 	teams := games["teams"].([]models.Team) //Forgive me
 	teamIDs := make([]string, len(teams))
 	for i, team := range teams {
@@ -79,7 +81,7 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 	log.Printf("TeamIDs to populate graph cache for: %v\n", teamIDs)
 	db.SetupTeamCaches(teamIDs, root, neighbors)
 
-	graphUpdate := models.GraphUpdate{
+	/*graphUpdate := models.GraphUpdate{
 		Guess:              root.Text,
 		Correct:            true,
 		NewNodeID:          root.ID,
@@ -87,13 +89,25 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 		NewNodeText:        root.Text,
 		ConnectingNodeText: "",
 		UndiscoveredNodes:  len(neighbors),
+	}*/
+
+	neighborIDs := make([]int64, len(neighbors))
+	for i, n := range neighbors {
+		neighborIDs[i] = n.ID
 	}
+	startMessage := models.StartMessage{
+		Type:          "start",
+		RootID:        root.ID,
+		RootText:      root.Text,
+		RootNeighbors: neighborIDs,
+	}
+
 	for _, teamID := range teamIDs {
 		broker, err := database.GetBroker(teamID)
 		if err != nil {
 			log.Panicln(err)
 		}
-		msg, err := json.Marshal(graphUpdate)
+		msg, err := json.Marshal(startMessage)
 		if err != nil {
 			log.Panicln(err)
 		}
@@ -103,9 +117,32 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	go endGameHandler(teamIDs, timeLimit)
+
 	successMessage := fmt.Sprintf("Started Game %s", gameIDarray[0])
 	fmt.Fprintln(w, models.CreateHTTPResponse(nil, successMessage, true).ToJSON())
 	// TODO maybe track time of the game and somehow kill it, for now just restart everything
+}
+
+func endGameHandler(teamIDs []string, timeLimit int) {
+	time.Sleep(time.Second * time.Duration(timeLimit))
+	endMessage := models.EndMessage{
+		Type: "end",
+	}
+	for _, teamID := range teamIDs {
+		broker, err := database.GetBroker(teamID)
+		if err != nil {
+			log.Panicln(err)
+		}
+		msg, err := json.Marshal(endMessage)
+		if err != nil {
+			log.Panicln(err)
+		}
+		err = broker.Publish(msg)
+		if err != nil {
+			log.Panicln(err)
+		}
+	}
 }
 
 // JoinGame attempts to upgrade the connection into a websocket and initiates GamePlay logic

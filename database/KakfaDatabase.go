@@ -1,6 +1,7 @@
 package database
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 
@@ -74,9 +75,21 @@ func (broker *KafkaBroker) Subscribe(consumerID string, action func(string)) err
 	c.SubscribeTopics([]string{broker.topic}, nil)
 	for {
 		msg, err := c.ReadMessage(-1)
-		log.Printf("Consumed message %v\n", msg)
 		if err == nil {
-			action(string(msg.Value))
+			log.Printf("Consumed message %v\n", msg)
+			endMessage := models.EndMessage{}
+			err := json.Unmarshal(msg.Value, &endMessage)
+			if err != nil || endMessage.Type != "end" {
+				action(string(msg.Value))
+			} else {
+				log.Printf("Triggered endgame: %v\n", endMessage)
+				action(string(msg.Value))
+				break
+			}
+		} else {
+			log.Printf("Error consuming: %v\n", err)
 		}
 	}
+
+	return nil
 }

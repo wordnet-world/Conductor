@@ -324,7 +324,7 @@ func (redisDatabase RedisDatabase) UpdateCache(newNode models.Node, neighbors []
 		}
 	}
 
-	if len(neighbors) != 0 {
+	if len(resultNodes) != 0 {
 		addNodesToPeriphery(client, teamID, resultNodes)
 	}
 	addNodeToFound(client, teamID, newNode)

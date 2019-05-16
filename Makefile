@@ -12,4 +12,4 @@ run:
 	./$(BINARY_NAME)
 
 clean:
-	rm $(BINARY_NAME)*
+	rm $(BINARY_NAME)

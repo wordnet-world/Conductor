@@ -41,7 +41,12 @@ A `GraphUpdate` is sent to the WebApp in order to update the current state of th
 ```json
 {
     "guess" : "Peter Parked",
-    "correct" : false
+    "correct" : false,
+    "newNodeId" : -1,
+    "newNodeText" : "",
+    "connectingNodeId" : -1,
+    "connectingNodeText" : "",
+    "undiscoveredNodes" :  0
 }
 ```
 

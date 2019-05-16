@@ -196,44 +196,60 @@ func (redisDatabase RedisDatabase) SetupTeamCaches(teamIDs []string, root models
 	client := connectToRedis()
 	defer client.Close()
 
-	nodesAsInterfaces := make([]interface{}, len(neighbors))
-	for i, v := range neighbors {
-		nodesAsInterfaces[i] = v.ID
-		idKey := fmt.Sprintf("nodeID:%d", v.ID)
-		textKey := fmt.Sprintf("nodeText:%s", v.Text)
-		err := client.SetNX(idKey, v.Text, 0).Err()
-		if err != nil {
-			log.Panicln(err)
-		}
-		err = client.SetNX(textKey, v.ID, 0).Err()
-		if err != nil {
-			log.Panicln(err)
-		}
+	for _, node := range neighbors {
+		addNodeToCache(client, node)
 	}
 
-	rootIDKey := fmt.Sprintf("nodeID:%d", root.ID)
-	rootTextKey := fmt.Sprintf("nodeText:%s", root.Text)
-
-	err := client.SetNX(rootIDKey, root.Text, 0).Err()
-	if err != nil {
-		log.Panicln(err)
-	}
-	err = client.SetNX(rootTextKey, root.ID, 0).Err()
-	if err != nil {
-		log.Panicln(err)
-	}
+	addNodeToCache(client, root)
 
 	for _, teamID := range teamIDs {
-		periphiKey := fmt.Sprintf("periph:%s", teamID)
-		knownKey := fmt.Sprintf("known:%s", teamID)
-		err := client.SAdd(periphiKey, nodesAsInterfaces...).Err()
-		if err != nil {
-			log.Panicln(err)
-		}
-		err = client.SAdd(knownKey, root.ID).Err()
-		if err != nil {
-			log.Panicln(err)
-		}
+		addNodesToPeriphery(client, teamID, neighbors)
+		addNodeToFound(client, teamID, root)
+	}
+}
+
+func addNodeToFound(client *redis.Client, teamID string, node models.Node) {
+	knownKey := fmt.Sprintf("known:%s", teamID)
+	err := client.SAdd(knownKey, node.ID).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func addNodesToPeriphery(client *redis.Client, teamID string, nodes []models.Node) {
+	periphiKey := fmt.Sprintf("periph:%s", teamID)
+	nodesAsInterfaces := make([]interface{}, len(nodes))
+	for i, v := range nodes {
+		nodesAsInterfaces[i] = v.ID
+	}
+	err := client.SAdd(periphiKey, nodesAsInterfaces...).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func addNodeToCache(client *redis.Client, node models.Node) {
+	idKey := fmt.Sprintf("nodeID:%d", node.ID)
+	textKey := fmt.Sprintf("nodeText:%s", node.Text)
+	err := client.SetNX(idKey, node.Text, 0).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+	err = client.SetNX(textKey, node.ID, 0).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func removeNodesFromPeriphery(client *redis.Client, teamID string, nodes []models.Node) {
+	periphiKey := fmt.Sprintf("periph:%s", teamID)
+	nodeIDs := make([]interface{}, len(nodes))
+	for i, node := range nodes {
+		nodeIDs[i] = node.ID
+	}
+	err := client.SRem(periphiKey, nodeIDs...)
+	if err != nil {
+		log.Panicln(err)
 	}
 }
 
@@ -286,7 +302,36 @@ func (redisDatabase RedisDatabase) IsPeriphery(guess string, teamID string) int6
 	return -1
 }
 
-func (redisDatabase RedisDatabase) getNeighborsMinusFoundNodes(neighbors []models.Node, teamID string) {
+// UpdateCache gets the diff of new neighbors and found nodes, updates the periphery, and updates found, and returning the diff
+// resultNodes first, foundNodes second in return
+func (redisDatabase RedisDatabase) UpdateCache(newNode models.Node, neighbors []models.Node, teamID string) ([]models.Node, []models.Node) {
+	client := connectToRedis()
+	defer client.Close()
+
+	knownKey := fmt.Sprintf("known:%s", teamID)
+
+	resultNodes := make([]models.Node, len(neighbors))
+	foundNodes := make([]models.Node, len(neighbors))
+	for _, node := range neighbors {
+		known, err := client.SIsMember(knownKey, node.ID).Result()
+		if err != nil {
+			log.Panicln(err)
+		}
+		if !known {
+			resultNodes = append(resultNodes, node)
+		} else {
+			foundNodes = append(foundNodes, node)
+		}
+	}
+
+	addNodesToPeriphery(client, teamID, resultNodes)
+	addNodeToFound(client, teamID, newNode)
+	removeNodesFromPeriphery(client, teamID, []models.Node{newNode})
+	for _, node := range neighbors {
+		addNodeToCache(client, node)
+	}
+
+	return resultNodes, foundNodes
 }
 
 // SetupDB should be run as the server starts to clear the DB and

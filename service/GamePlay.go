@@ -39,7 +39,9 @@ func PlayGame(ws *websocket.Conn, teamID string) {
 			break
 		}
 
-		jsonMsg, err := json.Marshal(msg)
+		graphUpdate := processGuess(msg, teamID, cache, graph)
+
+		jsonMsg, err := json.Marshal(graphUpdate)
 		if err != nil {
 			log.Panicln(err)
 		}
@@ -56,15 +58,33 @@ func createConsumerFunction(ws *websocket.Conn) func(string) {
 	}
 }
 
-func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatabase, graph database.GraphDatabase) {
+func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatabase, graph database.GraphDatabase) models.GraphUpdate {
 	var graphUpdate models.GraphUpdate
 	if cache.IsFound(msg.Guess, teamID) {
 		nodeID := cache.IsPeriphery(msg.Guess, teamID)
 		if nodeID != -1 {
-
+			node := models.Node{
+				ID:   nodeID,
+				Text: msg.Guess,
+			}
 			neighbors, err := graph.GetNeighborsNodeID(strconv.FormatInt(nodeID, 10))
 			if err != nil {
 				log.Panicln(err)
+			}
+
+			resultNodes, foundNodes := cache.UpdateCache(node, neighbors, teamID)
+			if len(foundNodes) > 1 {
+				log.Panicln("WE HAVE A CYCLE IN THE GRAPH!!!")
+			}
+
+			graphUpdate = models.GraphUpdate{
+				Guess:              msg.Guess,
+				Correct:            true,
+				NewNodeID:          node.ID,
+				ConnectingNodeID:   foundNodes[0].ID,
+				NewNodeText:        node.Text,
+				ConnectingNodeText: foundNodes[0].Text,
+				UndiscoveredNodes:  len(resultNodes),
 			}
 
 		}
@@ -79,4 +99,5 @@ func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatab
 			UndiscoveredNodes:  0,
 		}
 	}
+	return graphUpdate
 }

@@ -23,6 +23,7 @@ type CacheDatabase interface {
 	SetupTeamCaches(teamIDs []string, root models.Node, neighbors []models.Node)
 	IsFound(guess string, teamID string) bool
 	IsPeriphery(guess string, teamID string) int64
+	UpdateCache(newNode models.Node, neighbors []models.Node, teamID string) ([]models.Node, []models.Node)
 	SetupDB()
 }
 

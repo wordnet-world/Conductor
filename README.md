@@ -288,6 +288,39 @@ AdminpPassword: <string>
     "success" : true
 }
 ```
+#### StartGame
+
+Starts the game of the given gameID in the query parameters
+
+##### Endpoint
+
+`/startGame?gameID=1`
+
+##### Request
+
+###### Header
+
+```
+AdminpPassword: <string>
+```
+
+###### Query Parameters
+
+```json
+gameID int
+```
+
+##### Response
+
+###### Body
+
+```json
+{
+    "data" : "Started Game 1",
+    "error" : null,
+    "success" : true
+}
+```
 
 #### JoinGame
 

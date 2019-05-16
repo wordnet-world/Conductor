@@ -95,6 +95,19 @@ func (redisDatabase RedisDatabase) GetGames(fields []string) []map[string]interf
 	return games
 }
 
+// UpdateGame updates the given fields with new values
+func (redisDatabase RedisDatabase) UpdateGame(gameID string, updates map[string]interface{}) {
+	client := connectToRedis()
+	defer client.Close()
+
+	key := fmt.Sprintf("game:%s", gameID)
+
+	err := client.HMSet(key, updates).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
 // GetGame is like ListGames but only for the provided gameID
 func (redisDatabase RedisDatabase) GetGame(fields []string, gameID string) map[string]interface{} {
 	client := connectToRedis()

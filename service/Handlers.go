@@ -50,7 +50,7 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 		log.Panicln("No query parameter 'gameID' specified")
 	}
 
-	db := database.GetCacheDatabase()
+	cache := database.GetCacheDatabase()
 	graph := database.GetGraphDatabase()
 	err := graph.Connect(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
 	if err != nil {
@@ -71,7 +71,7 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Neighbors: %v\n", neighbors)
 
-	games := db.GetGame([]string{"teams", "timeLimit"}, gameIDarray[0])
+	games := cache.GetGame([]string{"teams", "timeLimit"}, gameIDarray[0])
 	timeLimit := games["timeLimit"].(int)
 	teams := games["teams"].([]models.Team) //Forgive me
 	teamIDs := make([]string, len(teams))
@@ -79,17 +79,7 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 		teamIDs[i] = team.ID
 	}
 	log.Printf("TeamIDs to populate graph cache for: %v\n", teamIDs)
-	db.SetupTeamCaches(teamIDs, root, neighbors)
-
-	/*graphUpdate := models.GraphUpdate{
-		Guess:              root.Text,
-		Correct:            true,
-		NewNodeID:          root.ID,
-		ConnectingNodeID:   -1,
-		NewNodeText:        root.Text,
-		ConnectingNodeText: "",
-		UndiscoveredNodes:  len(neighbors),
-	}*/
+	cache.SetupTeamCaches(teamIDs, root, neighbors)
 
 	neighborIDs := make([]int64, len(neighbors))
 	for i, n := range neighbors {
@@ -117,14 +107,17 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	go endGameHandler(teamIDs, timeLimit)
+	cache.UpdateGame(gameIDarray[0], map[string]interface{}{
+		"status": "in-progress",
+	})
+
+	go endGameHandler(cache, gameIDarray[0], teamIDs, timeLimit)
 
 	successMessage := fmt.Sprintf("Started Game %s", gameIDarray[0])
 	fmt.Fprintln(w, models.CreateHTTPResponse(nil, successMessage, true).ToJSON())
-	// TODO maybe track time of the game and somehow kill it, for now just restart everything
 }
 
-func endGameHandler(teamIDs []string, timeLimit int) {
+func endGameHandler(cache database.CacheDatabase, gameID string, teamIDs []string, timeLimit int) {
 	time.Sleep(time.Second * time.Duration(timeLimit))
 	endMessage := models.EndMessage{
 		Type: "end",
@@ -143,6 +136,9 @@ func endGameHandler(teamIDs []string, timeLimit int) {
 			log.Panicln(err)
 		}
 	}
+	cache.UpdateGame(gameID, map[string]interface{}{
+		"status": "complete",
+	})
 }
 
 // JoinGame attempts to upgrade the connection into a websocket and initiates GamePlay logic

@@ -14,6 +14,7 @@ type Broker interface {
 // CacheDatabase is the interface for normal database
 type CacheDatabase interface {
 	CreateGame(game models.CreateGame) string // the game id for the game just created
+	UpdateGame(gameID string, updates map[string]interface{})
 	GetGames(fields []string) []map[string]interface{}
 	GetGame(fields []string, gameID string) map[string]interface{}
 	GetTeams() []models.Team

@@ -97,6 +97,15 @@ func (db *Neo4jDatabase) GetNeighbors(node models.Node) ([]models.Node, error) {
 	return neighbors, nil
 }
 
+// GetNeighborsNodeID returns the neighbors of a node
+func (db *Neo4jDatabase) GetNeighborsNodeID(nodeID string) ([]models.Node, error) {
+	neighbors, err := db.getNodes("MATCH (n) - [] - (a) MATCH (n) WHERE id(n)=$id RETURN a.Text, ID(a)", map[string]interface{}{"id": nodeID})
+	if err != nil {
+		return nil, err
+	}
+	return neighbors, nil
+}
+
 func (db *Neo4jDatabase) getNodes(query string, params map[string]interface{}) ([]models.Node, error) {
 	session, err := db.driver.Session(neo4j.AccessModeRead)
 	if err != nil {

@@ -21,6 +21,8 @@ type CacheDatabase interface {
 	DeleteGame(gameID string) bool
 	GetConsumerID() string
 	SetupTeamCaches(teamIDs []string, root models.Node, neighbors []models.Node)
+	IsFound(guess string, teamID string) bool
+	IsPeriphery(guess string, teamID string) int64
 	SetupDB()
 }
 
@@ -29,6 +31,7 @@ type GraphDatabase interface {
 	Connect(uri, username, password string) error
 	Close()
 	GetNeighbors(models.Node) ([]models.Node, error)
+	GetNeighborsNodeID(nodeID string) ([]models.Node, error)
 	GetRoot() (models.Node, error)
 }
 

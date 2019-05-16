@@ -199,15 +199,26 @@ func (redisDatabase RedisDatabase) SetupTeamCaches(teamIDs []string, root models
 	nodesAsInterfaces := make([]interface{}, len(neighbors))
 	for i, v := range neighbors {
 		nodesAsInterfaces[i] = v.ID
-		key := fmt.Sprintf("node:%d", v.ID)
-		err := client.Set(key, v.Text, 0).Err()
+		idKey := fmt.Sprintf("nodeID:%d", v.ID)
+		textKey := fmt.Sprintf("nodeText:%s", v.Text)
+		err := client.SetNX(idKey, v.Text, 0).Err()
+		if err != nil {
+			log.Panicln(err)
+		}
+		err = client.SetNX(textKey, v.ID, 0).Err()
 		if err != nil {
 			log.Panicln(err)
 		}
 	}
 
-	rootKey := fmt.Sprintf("node:%d", root.ID)
-	err := client.Set(rootKey, root.Text, 0).Err()
+	rootIDKey := fmt.Sprintf("nodeID:%d", root.ID)
+	rootTextKey := fmt.Sprintf("nodeText:%s", root.Text)
+
+	err := client.SetNX(rootIDKey, root.Text, 0).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+	err = client.SetNX(rootTextKey, root.ID, 0).Err()
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -224,6 +235,58 @@ func (redisDatabase RedisDatabase) SetupTeamCaches(teamIDs []string, root models
 			log.Panicln(err)
 		}
 	}
+}
+
+// IsFound returns true if the guess is already in the graph
+func (redisDatabase RedisDatabase) IsFound(guess string, teamID string) bool {
+	client := connectToRedis()
+	defer client.Close()
+
+	guessKey := fmt.Sprintf("nodeText:%s", guess)
+	nodeID, err := client.Get(guessKey).Result()
+	if err == redis.Nil {
+		return false
+	} else if err != nil {
+		log.Panicln(err)
+	}
+
+	knownKey := fmt.Sprintf("known:%s", teamID)
+	found, err := client.SIsMember(knownKey, nodeID).Result()
+	if err != nil {
+		log.Panicln(err)
+	}
+	return found
+}
+
+// IsPeriphery returns the nodeID if the guess is in the periphery
+func (redisDatabase RedisDatabase) IsPeriphery(guess string, teamID string) int64 {
+	client := connectToRedis()
+	defer client.Close()
+
+	guessKey := fmt.Sprintf("nodeText:%s", guess)
+	nodeID, err := client.Get(guessKey).Result()
+	if err == redis.Nil {
+		return -1
+	} else if err != nil {
+		log.Panicln(err)
+	}
+
+	periphiKey := fmt.Sprintf("periph:%s", teamID)
+	periph, err := client.SIsMember(periphiKey, nodeID).Result()
+	if err != nil {
+		log.Panicln(err)
+	}
+	if periph {
+		nodeIDInt64, err := strconv.ParseInt(nodeID, 10, 64)
+		if err != nil {
+			log.Panicln(err)
+		}
+		return nodeIDInt64
+	}
+	return -1
+}
+
+func (redisDatabase RedisDatabase) getNeighborsMinusFoundNodes(neighbors []models.Node, teamID string) {
 }
 
 // SetupDB should be run as the server starts to clear the DB and

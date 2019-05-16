@@ -3,6 +3,7 @@ package database
 import (
 	"bufio"
 	"os"
+	"time"
 
 	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/wordnet-world/Conductor/models"
@@ -33,14 +34,22 @@ func (db *Neo4jDatabase) Connect(uri, username, password string) error {
 	}
 	db.driver = driver
 
+	return nil
+}
+
+// PopulateDummy populates the dummy data
+func (db *Neo4jDatabase) PopulateDummy(uri, username, password string) error {
+	err := db.Connect(uri, username, password)
+	if err != nil {
+		return err
+	}
 	stage := os.Getenv("STAGE")
 	if stage != "" {
-		err = initializeWithDummyData(driver)
+		err := initializeWithDummyData(db.driver)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
@@ -71,6 +80,7 @@ func initializeWithDummyData(driver neo4j.Driver) error {
 		if err != nil {
 			return err
 		}
+		time.Sleep(time.Second * 2) // this might be dumb
 	}
 
 	if err := scanner.Err(); err != nil {

@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/wordnet-world/Conductor/database"
+	"github.com/wordnet-world/Conductor/models"
 	"github.com/wordnet-world/Conductor/service"
 )
 
@@ -20,6 +21,10 @@ func main() {
 
 	rdb := database.GetCacheDatabase()
 	rdb.SetupDB()
+
+	graph := database.GetGraphDatabase()
+	graph.PopulateDummy(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
+	graph.Close()
 
 	// start router to allow connections
 	router := service.NewRouter()

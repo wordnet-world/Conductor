@@ -247,7 +247,7 @@ func removeNodesFromPeriphery(client *redis.Client, teamID string, nodes []model
 	for i, node := range nodes {
 		nodeIDs[i] = node.ID
 	}
-	err := client.SRem(periphiKey, nodeIDs...)
+	err := client.SRem(periphiKey, nodeIDs...).Err()
 	if err != nil {
 		log.Panicln(err)
 	}
@@ -324,7 +324,9 @@ func (redisDatabase RedisDatabase) UpdateCache(newNode models.Node, neighbors []
 		}
 	}
 
-	addNodesToPeriphery(client, teamID, resultNodes)
+	if len(neighbors) != 0 {
+		addNodesToPeriphery(client, teamID, resultNodes)
+	}
 	addNodeToFound(client, teamID, newNode)
 	removeNodesFromPeriphery(client, teamID, []models.Node{newNode})
 	for _, node := range neighbors {

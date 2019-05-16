@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strconv"
 
 	"github.com/wordnet-world/Conductor/database"
 
@@ -60,22 +59,29 @@ func createConsumerFunction(ws *websocket.Conn) func(string) {
 
 func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatabase, graph database.GraphDatabase) models.GraphUpdate {
 	var graphUpdate models.GraphUpdate
-	if cache.IsFound(msg.Guess, teamID) {
+	if !cache.IsFound(msg.Guess, teamID) {
+		log.Printf("Guess not in Found, Guess:%s\n", msg.Guess)
 		nodeID := cache.IsPeriphery(msg.Guess, teamID)
 		if nodeID != -1 {
 			node := models.Node{
 				ID:   nodeID,
 				Text: msg.Guess,
 			}
-			neighbors, err := graph.GetNeighborsNodeID(strconv.FormatInt(nodeID, 10))
+			log.Printf("Node found in periphery: %v\n", node)
+			neighbors, err := graph.GetNeighborsNodeID(nodeID)
 			if err != nil {
 				log.Panicln(err)
 			}
+
+			log.Printf("Retrieved neighbors from graph: %v\n", neighbors)
 
 			resultNodes, foundNodes := cache.UpdateCache(node, neighbors, teamID)
 			if len(foundNodes) > 1 {
 				log.Panicln("WE HAVE A CYCLE IN THE GRAPH!!!")
 			}
+
+			log.Printf("ResultNodes: %v\n", resultNodes)
+			log.Printf("FoundNodes: %v\n", foundNodes)
 
 			graphUpdate = models.GraphUpdate{
 				Guess:              msg.Guess,

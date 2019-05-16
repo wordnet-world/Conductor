@@ -68,6 +68,8 @@ func StartGame(w http.ResponseWriter, r *http.Request) {
 		log.Panicln(err)
 	}
 
+	log.Printf("Neighbors: %v\n", neighbors)
+
 	games := db.GetGame([]string{"teams"}, gameIDarray[0])
 	teams := games["teams"].([]models.Team) //Forgive me
 	teamIDs := make([]string, len(teams))

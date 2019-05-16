@@ -2,8 +2,8 @@ package database
 
 import (
 	"bufio"
+	"log"
 	"os"
-	"time"
 
 	"github.com/neo4j/neo4j-go-driver/neo4j"
 	"github.com/wordnet-world/Conductor/models"
@@ -73,6 +73,7 @@ func initializeWithDummyData(driver neo4j.Driver) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		query := scanner.Text()
+		log.Println(query)
 		_, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
 			result, err := transaction.Run(query, nil)
 			return result, err
@@ -80,7 +81,6 @@ func initializeWithDummyData(driver neo4j.Driver) error {
 		if err != nil {
 			return err
 		}
-		time.Sleep(time.Second * 2) // this might be dumb
 	}
 
 	if err := scanner.Err(); err != nil {

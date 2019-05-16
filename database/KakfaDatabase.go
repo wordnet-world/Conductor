@@ -61,9 +61,10 @@ func (broker *KafkaBroker) Publish(message []byte) error {
 // with whatever message was received everytime consumer consumes
 func (broker *KafkaBroker) Subscribe(consumerID string, action func(string)) error {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"group.id":          consumerID,
-		"bootstrap.servers": models.Config.Kafka.Address,
-		"auto.offset.reset": "earliest",
+		"group.id":             consumerID,
+		"bootstrap.servers":    models.Config.Kafka.Address,
+		"auto.offset.reset":    "earliest",
+		"max.poll.interval.ms": "1000000",
 	})
 	if err != nil {
 		log.Println(err)

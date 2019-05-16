@@ -310,8 +310,8 @@ func (redisDatabase RedisDatabase) UpdateCache(newNode models.Node, neighbors []
 
 	knownKey := fmt.Sprintf("known:%s", teamID)
 
-	resultNodes := make([]models.Node, len(neighbors))
-	foundNodes := make([]models.Node, len(neighbors))
+	resultNodes := make([]models.Node, 0, len(neighbors))
+	foundNodes := make([]models.Node, 0, len(neighbors))
 	for _, node := range neighbors {
 		known, err := client.SIsMember(knownKey, node.ID).Result()
 		if err != nil {

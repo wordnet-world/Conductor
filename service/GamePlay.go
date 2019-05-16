@@ -76,12 +76,12 @@ func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatab
 			log.Printf("Retrieved neighbors from graph: %v\n", neighbors)
 
 			resultNodes, foundNodes := cache.UpdateCache(node, neighbors, teamID)
+			log.Printf("ResultNodes: %v\n", resultNodes)
+			log.Printf("FoundNodes: %v\n", foundNodes)
+
 			if len(foundNodes) > 1 {
 				log.Panicln("WE HAVE A CYCLE IN THE GRAPH!!!")
 			}
-
-			log.Printf("ResultNodes: %v\n", resultNodes)
-			log.Printf("FoundNodes: %v\n", foundNodes)
 
 			graphUpdate = models.GraphUpdate{
 				Guess:              msg.Guess,

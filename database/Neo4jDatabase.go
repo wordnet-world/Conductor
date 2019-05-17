@@ -45,6 +45,7 @@ func (db *Neo4jDatabase) PopulateDummy(uri, username, password string) error {
 	}
 	stage := os.Getenv("STAGE")
 	if stage != "" {
+		log.Println("Populating graph with dummy values")
 		err := initializeWithDummyData(db.driver)
 		if err != nil {
 			return err

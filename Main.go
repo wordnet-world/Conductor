@@ -23,7 +23,10 @@ func main() {
 	rdb.SetupDB()
 
 	graph := database.GetGraphDatabase()
-	graph.PopulateDummy(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
+	err := graph.PopulateDummy(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
+	if err != nil {
+		log.Println(err)
+	}
 	graph.Close()
 
 	// start router to allow connections

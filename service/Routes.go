@@ -71,4 +71,10 @@ var routes = Routes{
 		"/teamInfo",
 		TeamInfo,
 	},
+	Route{
+		"Start_Game",
+		"POST",
+		"/startGame",
+		StartGame,
+	},
 }

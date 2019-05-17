@@ -20,6 +20,7 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 	// if the delete fails notify the user of the id and that it should be deleted
 	// or that the database is in an uncertain state
 	client := connectToRedis()
+	defer client.Close()
 	game.ID = generateUUID(client, "game:id")
 	gameKey := fmt.Sprintf("game:%s", game.ID)
 	teamIDs := generateTeams(client, game.Teams)
@@ -37,14 +38,13 @@ func (redisDatabase RedisDatabase) CreateGame(game models.CreateGame) string {
 	checkErr(err)
 	err = client.SAdd("games", gameKey).Err()
 	checkErr(err)
-
 	return game.ID
 }
 
 // GetGames returns a slice of Game objects
 func (redisDatabase RedisDatabase) GetGames(fields []string) []map[string]interface{} {
 	client := connectToRedis()
-
+	defer client.Close()
 	keys, err := client.SMembers("games").Result()
 	if err != nil {
 		log.Panicln(err)
@@ -95,9 +95,23 @@ func (redisDatabase RedisDatabase) GetGames(fields []string) []map[string]interf
 	return games
 }
 
+// UpdateGame updates the given fields with new values
+func (redisDatabase RedisDatabase) UpdateGame(gameID string, updates map[string]interface{}) {
+	client := connectToRedis()
+	defer client.Close()
+
+	key := fmt.Sprintf("game:%s", gameID)
+
+	err := client.HMSet(key, updates).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
 // GetGame is like ListGames but only for the provided gameID
 func (redisDatabase RedisDatabase) GetGame(fields []string, gameID string) map[string]interface{} {
 	client := connectToRedis()
+	defer client.Close()
 
 	key := fmt.Sprintf("game:%s", gameID)
 
@@ -146,7 +160,7 @@ func (redisDatabase RedisDatabase) GetGame(fields []string, gameID string) map[s
 // GetTeams returns a slice of Team objects for a given Game
 func (redisDatabase RedisDatabase) GetTeams() []models.Team {
 	client := connectToRedis()
-
+	defer client.Close()
 	teamKeys, err := client.SMembers("teams").Result()
 	checkErr(err)
 
@@ -157,6 +171,7 @@ func (redisDatabase RedisDatabase) GetTeams() []models.Team {
 // GetTeam is like GetTeams but for a single teamID
 func (redisDatabase RedisDatabase) GetTeam(teamID string) models.Team {
 	client := connectToRedis()
+	defer client.Close()
 	teamIDs := []string{teamID}
 	teams := getTeamData(client, teamIDsToKeys(teamIDs))
 	return teams[0]
@@ -166,6 +181,7 @@ func (redisDatabase RedisDatabase) GetTeam(teamID string) models.Team {
 // Currently not handling partial deletes
 func (redisDatabase RedisDatabase) DeleteGame(gameID string) bool {
 	client := connectToRedis()
+	defer client.Close()
 	gameKey := fmt.Sprintf("game:%s", gameID)
 	redisTeamIDs, err := client.HGet(gameKey, "teamIDs").Result()
 	checkErr(err)
@@ -173,11 +189,176 @@ func (redisDatabase RedisDatabase) DeleteGame(gameID string) bool {
 	err = json.Unmarshal([]byte(redisTeamIDs), &teamIDs)
 	checkErr(err)
 	deleteTeams(client, teamIDs)
+	deleteTeamCaches(client, teamIDs)
 	err = client.HDel(gameKey, "gameID", "name", "startNode", "timeLimit", "teamIDs", "status", "startTime").Err()
 	checkErr(err)
 	err = client.SRem("games", gameKey).Err()
 
 	return true
+}
+
+// GetConsumerID returns a unique id string for creating consumers
+func (redisDatabase RedisDatabase) GetConsumerID() string {
+	client := connectToRedis()
+	defer client.Close()
+	consumerID := generateUUID(client, "consumer:id")
+	return consumerID
+}
+
+// SetupTeamCaches is used in the StartGame endpoint and initializes teams caches
+func (redisDatabase RedisDatabase) SetupTeamCaches(teamIDs []string, root models.Node, neighbors []models.Node) {
+	client := connectToRedis()
+	defer client.Close()
+
+	for _, node := range neighbors {
+		addNodeToCache(client, node)
+	}
+
+	addNodeToCache(client, root)
+
+	for _, teamID := range teamIDs {
+		addNodesToPeriphery(client, teamID, neighbors)
+		addNodeToFound(client, teamID, root)
+	}
+}
+
+func deleteTeamCaches(client *redis.Client, teamIDs []string) {
+	for _, t := range teamIDs {
+		periphiKey := fmt.Sprintf("periph:%s", t)
+		knownKey := fmt.Sprintf("known:%s", t)
+		err := client.Del(periphiKey, knownKey).Err()
+		if err != nil {
+			log.Panicln(err)
+		}
+	}
+}
+
+func addNodeToFound(client *redis.Client, teamID string, node models.Node) {
+	knownKey := fmt.Sprintf("known:%s", teamID)
+	err := client.SAdd(knownKey, node.ID).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func addNodesToPeriphery(client *redis.Client, teamID string, nodes []models.Node) {
+	periphiKey := fmt.Sprintf("periph:%s", teamID)
+	nodesAsInterfaces := make([]interface{}, len(nodes))
+	for i, v := range nodes {
+		nodesAsInterfaces[i] = v.ID
+	}
+	err := client.SAdd(periphiKey, nodesAsInterfaces...).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func addNodeToCache(client *redis.Client, node models.Node) {
+	idKey := fmt.Sprintf("nodeID:%d", node.ID)
+	textKey := fmt.Sprintf("nodeText:%s", node.Text)
+	err := client.SetNX(idKey, node.Text, 0).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+	err = client.SetNX(textKey, node.ID, 0).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+func removeNodesFromPeriphery(client *redis.Client, teamID string, nodes []models.Node) {
+	periphiKey := fmt.Sprintf("periph:%s", teamID)
+	nodeIDs := make([]interface{}, len(nodes))
+	for i, node := range nodes {
+		nodeIDs[i] = node.ID
+	}
+	err := client.SRem(periphiKey, nodeIDs...).Err()
+	if err != nil {
+		log.Panicln(err)
+	}
+}
+
+// IsFound returns true if the guess is already in the graph
+func (redisDatabase RedisDatabase) IsFound(guess string, teamID string) bool {
+	client := connectToRedis()
+	defer client.Close()
+
+	guessKey := fmt.Sprintf("nodeText:%s", guess)
+	nodeID, err := client.Get(guessKey).Result()
+	if err == redis.Nil {
+		return false
+	} else if err != nil {
+		log.Panicln(err)
+	}
+
+	knownKey := fmt.Sprintf("known:%s", teamID)
+	found, err := client.SIsMember(knownKey, nodeID).Result()
+	if err != nil {
+		log.Panicln(err)
+	}
+	return found
+}
+
+// IsPeriphery returns the nodeID if the guess is in the periphery
+func (redisDatabase RedisDatabase) IsPeriphery(guess string, teamID string) int64 {
+	client := connectToRedis()
+	defer client.Close()
+
+	guessKey := fmt.Sprintf("nodeText:%s", guess)
+	nodeID, err := client.Get(guessKey).Result()
+	if err == redis.Nil {
+		return -1
+	} else if err != nil {
+		log.Panicln(err)
+	}
+
+	periphiKey := fmt.Sprintf("periph:%s", teamID)
+	periph, err := client.SIsMember(periphiKey, nodeID).Result()
+	if err != nil {
+		log.Panicln(err)
+	}
+	if periph {
+		nodeIDInt64, err := strconv.ParseInt(nodeID, 10, 64)
+		if err != nil {
+			log.Panicln(err)
+		}
+		return nodeIDInt64
+	}
+	return -1
+}
+
+// UpdateCache gets the diff of new neighbors and found nodes, updates the periphery, and updates found, and returning the diff
+// resultNodes first, foundNodes second in return
+func (redisDatabase RedisDatabase) UpdateCache(newNode models.Node, neighbors []models.Node, teamID string) ([]models.Node, []models.Node) {
+	client := connectToRedis()
+	defer client.Close()
+
+	knownKey := fmt.Sprintf("known:%s", teamID)
+
+	resultNodes := make([]models.Node, 0, len(neighbors))
+	foundNodes := make([]models.Node, 0, len(neighbors))
+	for _, node := range neighbors {
+		known, err := client.SIsMember(knownKey, node.ID).Result()
+		if err != nil {
+			log.Panicln(err)
+		}
+		if !known {
+			resultNodes = append(resultNodes, node)
+		} else {
+			foundNodes = append(foundNodes, node)
+		}
+	}
+
+	if len(resultNodes) != 0 {
+		addNodesToPeriphery(client, teamID, resultNodes)
+	}
+	addNodeToFound(client, teamID, newNode)
+	removeNodesFromPeriphery(client, teamID, []models.Node{newNode})
+	for _, node := range neighbors {
+		addNodeToCache(client, node)
+	}
+
+	return resultNodes, foundNodes
 }
 
 // SetupDB should be run as the server starts to clear the DB and
@@ -190,12 +371,15 @@ func (redisDatabase RedisDatabase) SetupDB() {
 	}()*/
 
 	client := connectToRedis()
+	defer client.Close()
 
 	err := client.FlushAll().Err()
 	checkErr(err)
 	err = client.Set("game:id", 0, 0).Err()
 	checkErr(err)
 	err = client.Set("team:id", 0, 0).Err()
+	checkErr(err)
+	err = client.Set("consumer:id", 0, 0).Err()
 	checkErr(err)
 }
 

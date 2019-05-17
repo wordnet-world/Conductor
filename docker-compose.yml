@@ -11,6 +11,13 @@ services:
     image: redis:latest
     ports:
       - "6379"
+  kafka:
+    image: spotify/kafka:latest
+    ports: 
+      - "9092"
+    environment:
+      - ADVERTISED_HOST=kafka
+      - ADVERTISED_PORT=9092
   conductor:
     build: .
     ports: 
@@ -18,6 +25,7 @@ services:
     depends_on:
       - "redis"
       - "neo4j"
+      - "kafka"
     environment:
       - STAGE=1
     

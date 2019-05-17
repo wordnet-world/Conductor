@@ -2,6 +2,7 @@ package database
 
 import (
 	"bufio"
+	"log"
 	"os"
 
 	"github.com/neo4j/neo4j-go-driver/neo4j"
@@ -33,15 +34,28 @@ func (db *Neo4jDatabase) Connect(uri, username, password string) error {
 	}
 	db.driver = driver
 
+	return nil
+}
+
+// PopulateDummy populates the dummy data
+func (db *Neo4jDatabase) PopulateDummy(uri, username, password string) error {
+	err := db.Connect(uri, username, password)
+	if err != nil {
+		return err
+	}
 	stage := os.Getenv("STAGE")
 	if stage != "" {
-		err = initializeWithDummyData(driver)
+		err := initializeWithDummyData(db.driver)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
+}
+
+// Close closes the connection with the graph database
+func (db *Neo4jDatabase) Close() {
+	db.driver.Close()
 }
 
 func initializeWithDummyData(driver neo4j.Driver) error {
@@ -59,6 +73,7 @@ func initializeWithDummyData(driver neo4j.Driver) error {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		query := scanner.Text()
+		log.Println(query)
 		_, err := session.WriteTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
 			result, err := transaction.Run(query, nil)
 			return result, err
@@ -86,6 +101,15 @@ func (db *Neo4jDatabase) GetRoot() (models.Node, error) {
 // GetNeighbors returns the neighbors of a node
 func (db *Neo4jDatabase) GetNeighbors(node models.Node) ([]models.Node, error) {
 	neighbors, err := db.getNodes("MATCH (n) - [] - (a) MATCH (n) WHERE id(n)=$id RETURN a.Text, ID(a)", map[string]interface{}{"id": node.ID})
+	if err != nil {
+		return nil, err
+	}
+	return neighbors, nil
+}
+
+// GetNeighborsNodeID returns the neighbors of a node
+func (db *Neo4jDatabase) GetNeighborsNodeID(nodeID int64) ([]models.Node, error) {
+	neighbors, err := db.getNodes("MATCH (n) - [] - (a) MATCH (n) WHERE id(n)=$id RETURN a.Text, ID(a)", map[string]interface{}{"id": nodeID})
 	if err != nil {
 		return nil, err
 	}

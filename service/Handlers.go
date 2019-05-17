@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 	"github.com/wordnet-world/Conductor/database"
@@ -33,20 +34,137 @@ func AdminPasswordCheck(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintln(w, models.CreateHTTPResponse(nil, "Correct AdminPassword", true).ToJSON())
 }
 
+// StartGame asks neo4j for the root node, publishes a graphUpdate to each team's topic
+// start some sort of timer which will send an endgame message
+// Input will be the gameID to start
+func StartGame(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+
+	gameIDarray, ok := r.URL.Query()["gameID"]
+	if !ok || len(gameIDarray) < 1 {
+		log.Panicln("No query parameter 'gameID' specified")
+	}
+
+	cache := database.GetCacheDatabase()
+	graph := database.GetGraphDatabase()
+	err := graph.Connect(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	defer graph.Close()
+
+	root, err := graph.GetRoot()
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	neighbors, err := graph.GetNeighbors(root)
+	if err != nil {
+		log.Panicln(err)
+	}
+
+	log.Printf("Neighbors: %v\n", neighbors)
+
+	games := cache.GetGame([]string{"teams", "timeLimit"}, gameIDarray[0])
+	timeLimit := games["timeLimit"].(int)
+	teams := games["teams"].([]models.Team) //Forgive me
+	teamIDs := make([]string, len(teams))
+	for i, team := range teams {
+		teamIDs[i] = team.ID
+	}
+	log.Printf("TeamIDs to populate graph cache for: %v\n", teamIDs)
+	cache.SetupTeamCaches(teamIDs, root, neighbors)
+
+	neighborIDs := make([]int64, len(neighbors))
+	for i, n := range neighbors {
+		neighborIDs[i] = n.ID
+	}
+	startMessage := models.StartMessage{
+		Type:          "start",
+		RootID:        root.ID,
+		RootText:      root.Text,
+		RootNeighbors: neighborIDs,
+	}
+
+	for _, teamID := range teamIDs {
+		broker, err := database.GetBroker(teamID)
+		if err != nil {
+			log.Panicln(err)
+		}
+		msg, err := json.Marshal(startMessage)
+		if err != nil {
+			log.Panicln(err)
+		}
+		err = broker.Publish(msg)
+		if err != nil {
+			log.Panicln(err)
+		}
+	}
+
+	cache.UpdateGame(gameIDarray[0], map[string]interface{}{
+		"status": "in-progress",
+	})
+
+	go endGameHandler(cache, gameIDarray[0], teamIDs, timeLimit)
+
+	successMessage := fmt.Sprintf("Started Game %s", gameIDarray[0])
+	fmt.Fprintln(w, models.CreateHTTPResponse(nil, successMessage, true).ToJSON())
+}
+
+func endGameHandler(cache database.CacheDatabase, gameID string, teamIDs []string, timeLimit int) {
+	time.Sleep(time.Second * time.Duration(timeLimit))
+	endMessage := models.EndMessage{
+		Type: "end",
+	}
+	for _, teamID := range teamIDs {
+		broker, err := database.GetBroker(teamID)
+		if err != nil {
+			log.Panicln(err)
+		}
+		msg, err := json.Marshal(endMessage)
+		if err != nil {
+			log.Panicln(err)
+		}
+		err = broker.Publish(msg)
+		if err != nil {
+			log.Panicln(err)
+		}
+	}
+	cache.UpdateGame(gameID, map[string]interface{}{
+		"status": "complete",
+	})
+}
+
 // JoinGame attempts to upgrade the connection into a websocket and initiates GamePlay logic
 func JoinGame(w http.ResponseWriter, r *http.Request) {
-	// TODO need to pick a team for this connection, probably through url parameters
+	defer func() {
+		if recovery := recover(); recovery != nil {
+			log.Println(recovery)
+			fmt.Fprintln(w, models.CreateHTTPResponse(recovery, nil, false).ToJSON())
+		}
+	}()
+
 	upgrader := websocket.Upgrader{
 		CheckOrigin: func(r *http.Request) bool { return true },
 	}
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
-		return
+		log.Panicln(err)
 	}
 	defer ws.Close()
 
-	PlayGame(ws, "CHANGE ME LATER") // TODO
+	teamIDarray, ok := r.URL.Query()["teamID"]
+	if !ok || len(teamIDarray) < 1 {
+		log.Panicln("No query parameter 'teamID' specified")
+	}
+
+	PlayGame(ws, teamIDarray[0])
 }
 
 // CreateGame will create a game with the specified configuration

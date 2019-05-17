@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -24,15 +23,8 @@ func main() {
 	rdb.SetupDB()
 
 	graph := database.GetGraphDatabase()
-	err := graph.Connect(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
-	if err != nil {
-		log.Println(err)
-	} else {
-		root, _ := graph.GetRoot()
-		nodes, _ := graph.GetNeighbors(root)
-		fmt.Println(root)
-		fmt.Println(nodes)
-	}
+	graph.PopulateDummy(models.Config.Neo4j.URI, models.Config.Neo4j.Username, models.Config.Neo4j.Password)
+	graph.Close()
 
 	// start router to allow connections
 	router := service.NewRouter()

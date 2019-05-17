@@ -1,71 +1,74 @@
 package database
 
 import (
+	"encoding/json"
+	"fmt"
+	"log"
+
 	"github.com/confluentinc/confluent-kafka-go/kafka"
 	"github.com/wordnet-world/Conductor/models"
 )
 
 // KafkaBroker is a Broker implementation with Pub/Sub abilities
 type KafkaBroker struct {
-	producer  *kafka.Producer
-	consumer  *kafka.Consumer
-	connected bool
-	topic     string
+	producer *kafka.Producer
+	consumer *kafka.Consumer
+	topic    string
 }
 
 // NewKafkaBroker is a Constructor which attempts to connect to the kafka broker
 func NewKafkaBroker(topic string) (*KafkaBroker, error) {
 	p := new(KafkaBroker)
-	err := p.connect()
-	if err != nil {
-		return nil, err
-	}
 	p.topic = topic
-	p.connected = true
 	return p, nil
-}
-
-// Connect establishes a producer
-func (broker KafkaBroker) connect() error {
-	p, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": models.Config.Kafka.Address})
-	if err != nil {
-		return err
-	}
-
-	defer p.Close()
-	broker.producer = p
-	return nil
 }
 
 // Publish uses the kafka producer to publish a message
 // cannot be used if connect has not been called
-func (broker KafkaBroker) Publish(message string) error {
-	if !broker.connected {
-		return new(invalidStateError)
+func (broker *KafkaBroker) Publish(message []byte) error {
+	p, err := kafka.NewProducer(&kafka.ConfigMap{
+		"bootstrap.servers":            models.Config.Kafka.Address,
+		"queue.buffering.max.messages": "5",
+		"queue.buffering.max.ms":       "300",
+	})
+
+	deliveryChan := make(chan kafka.Event)
+
+	err = p.Produce(&kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &broker.topic, Partition: kafka.PartitionAny},
+		Value:          message,
+	}, deliveryChan)
+
+	if err != nil {
+		return err
+	}
+	e := <-deliveryChan
+	m := e.(*kafka.Message)
+
+	if m.TopicPartition.Error != nil {
+		fmt.Printf("Delivery failed: %v\n", m.TopicPartition.Error)
+	} else {
+		fmt.Printf("Delivered message to topic %s [%d] at offset %v\n",
+			*m.TopicPartition.Topic, m.TopicPartition.Partition, m.TopicPartition.Offset)
 	}
 
-	broker.producer.Produce(&kafka.Message{
-		TopicPartition: kafka.TopicPartition{Topic: &broker.topic, Partition: kafka.PartitionAny},
-		Value:          []byte(message),
-	}, nil)
-
-	broker.producer.Flush(15 * 1000)
+	close(deliveryChan)
+	p.Flush(15 * 1000)
+	p.Close()
 	return nil
 }
 
 // Subscribe subscribes to a kafka topic using a consumer. Will call the action func
 // with whatever message was received everytime consumer consumes
-func (broker KafkaBroker) Subscribe(action func(string)) error {
-	if !broker.connected {
-		return new(invalidStateError)
-	}
-
+func (broker *KafkaBroker) Subscribe(consumerID string, action func(string)) error {
 	c, err := kafka.NewConsumer(&kafka.ConfigMap{
-		// "group.id":          "myGroup", // need to handle should be different - may work if we don't actually specify it
-		"bootstrap.servers": models.Config.Kafka.Address,
-		"auto.offset.reset": "earliest",
+		"group.id":             consumerID,
+		"bootstrap.servers":    models.Config.Kafka.Address,
+		"auto.offset.reset":    "earliest",
+		"max.poll.interval.ms": "1000000",
 	})
 	if err != nil {
+		log.Println(err)
 		return err
 	}
 
@@ -73,15 +76,20 @@ func (broker KafkaBroker) Subscribe(action func(string)) error {
 	for {
 		msg, err := c.ReadMessage(-1)
 		if err == nil {
-			action(string(msg.Value))
+			log.Printf("Consumed message %v\n", msg)
+			endMessage := models.EndMessage{}
+			err := json.Unmarshal(msg.Value, &endMessage)
+			if err != nil || endMessage.Type != "end" {
+				action(string(msg.Value))
+			} else {
+				log.Printf("Triggered endgame: %v\n", endMessage)
+				action(string(msg.Value))
+				break
+			}
+		} else {
+			log.Printf("Error consuming: %v\n", err)
 		}
 	}
-}
 
-type invalidStateError struct {
-	message string
-}
-
-func (e *invalidStateError) Error() string {
-	return e.message
+	return nil
 }

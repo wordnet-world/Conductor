@@ -67,7 +67,7 @@ func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatab
 		NewNodeText:      "",
 		NewNodeNeighbors: []int64{},
 	}
-	if !cache.IsFound(msg.Guess, teamID) {
+	if !cache.IsFound(strings.ToLower(msg.Guess), teamID) {
 		log.Printf("Guess not in Found, Guess:%s\n", strings.ToLower(msg.Guess))
 		nodeID := cache.IsPeriphery(strings.ToLower(msg.Guess), teamID)
 		if nodeID != -1 {

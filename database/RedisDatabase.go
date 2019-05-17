@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"strings"
 
 	"github.com/go-redis/redis"
 	"github.com/wordnet-world/Conductor/models"
@@ -255,8 +256,8 @@ func addNodesToPeriphery(client *redis.Client, teamID string, nodes []models.Nod
 
 func addNodeToCache(client *redis.Client, node models.Node) {
 	idKey := fmt.Sprintf("nodeID:%d", node.ID)
-	textKey := fmt.Sprintf("nodeText:%s", node.Text)
-	err := client.SetNX(idKey, node.Text, 0).Err()
+	textKey := fmt.Sprintf("nodeText:%s", strings.ToLower(node.Text))
+	err := client.SetNX(idKey, strings.ToLower(node.Text), 0).Err()
 	if err != nil {
 		log.Panicln(err)
 	}

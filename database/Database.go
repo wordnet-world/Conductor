@@ -36,6 +36,7 @@ type GraphDatabase interface {
 	GetNeighbors(models.Node) ([]models.Node, error)
 	GetNeighborsNodeID(nodeID int64) ([]models.Node, error)
 	GetRoot() (models.Node, error)
+	GetNodeText(id int64) string
 }
 
 // GetCacheDatabase returns the default cache database type

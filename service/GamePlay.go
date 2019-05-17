@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 
 	"github.com/wordnet-world/Conductor/database"
 
@@ -67,13 +66,13 @@ func processGuess(msg models.WordGuess, teamID string, cache database.CacheDatab
 		NewNodeText:      "",
 		NewNodeNeighbors: []int64{},
 	}
-	if !cache.IsFound(strings.ToLower(msg.Guess), teamID) {
-		log.Printf("Guess not in Found, Guess:%s\n", strings.ToLower(msg.Guess))
-		nodeID := cache.IsPeriphery(strings.ToLower(msg.Guess), teamID)
+	if !cache.IsFound(msg.Guess, teamID) {
+		log.Printf("Guess not in Found, Guess:%s\n", msg.Guess)
+		nodeID := cache.IsPeriphery(msg.Guess, teamID)
 		if nodeID != -1 {
 			node := models.Node{
 				ID:   nodeID,
-				Text: msg.Guess,
+				Text: graph.GetNodeText(nodeID),
 			}
 			log.Printf("Node found in periphery: %v\n", node)
 			neighbors, err := graph.GetNeighborsNodeID(nodeID)

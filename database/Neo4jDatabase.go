@@ -90,6 +90,25 @@ func initializeWithDummyData(driver neo4j.Driver) error {
 	return nil
 }
 
+// GetNodeText returns the text for a node
+func (db *Neo4jDatabase) GetNodeText(id int64) string {
+	session, err := db.driver.Session(neo4j.AccessModeRead)
+	if err != nil {
+		return ""
+	}
+	response, err := session.ReadTransaction(func(transaction neo4j.Transaction) (interface{}, error) {
+		result, err := transaction.Run("MATCH (n) WHERE id(n)=$id RETURN n.Text", map[string]interface{}{"id": id})
+		if err != nil {
+			return nil, err
+		}
+		if result.Next() {
+			return result.Record().GetByIndex(0).(string), nil
+		}
+		return "I'm bad", nil
+	})
+	return response.(string)
+}
+
 // GetRoot returns the root node
 func (db *Neo4jDatabase) GetRoot() (models.Node, error) {
 	roots, err := db.getNodes("MATCH (n:Root) RETURN n.Text, ID(n)", map[string]interface{}{})

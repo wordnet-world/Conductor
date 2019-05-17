@@ -189,6 +189,7 @@ func (redisDatabase RedisDatabase) DeleteGame(gameID string) bool {
 	err = json.Unmarshal([]byte(redisTeamIDs), &teamIDs)
 	checkErr(err)
 	deleteTeams(client, teamIDs)
+	deleteTeamCaches(client, teamIDs)
 	err = client.HDel(gameKey, "gameID", "name", "startNode", "timeLimit", "teamIDs", "status", "startTime").Err()
 	checkErr(err)
 	err = client.SRem("games", gameKey).Err()
@@ -218,6 +219,17 @@ func (redisDatabase RedisDatabase) SetupTeamCaches(teamIDs []string, root models
 	for _, teamID := range teamIDs {
 		addNodesToPeriphery(client, teamID, neighbors)
 		addNodeToFound(client, teamID, root)
+	}
+}
+
+func deleteTeamCaches(client *redis.Client, teamIDs []string) {
+	for _, t := range teamIDs {
+		periphiKey := fmt.Sprintf("periph:%s", t)
+		knownKey := fmt.Sprintf("known:%s", t)
+		err := client.Del(periphiKey, knownKey).Err()
+		if err != nil {
+			log.Panicln(err)
+		}
 	}
 }
 
